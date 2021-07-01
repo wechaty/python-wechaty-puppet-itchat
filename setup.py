@@ -42,7 +42,7 @@ def setup() -> None:
         version = versioning(fh.readline())
 
     setuptools.setup(
-        name='wechaty-puppet-service',
+        name='python-wechaty-puppet-itchat',
         version=version,
         author='Lyle Shaw',
         author_email='x@lyleshaw.com',
