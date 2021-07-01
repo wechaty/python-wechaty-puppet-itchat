@@ -1,0 +1,11 @@
+flake8
+mypy
+mypy-extensions
+pycodestyle
+pylint
+pylint-quotes
+pytest
+pytype
+semver
+wechaty-puppet~=0.3dev2
+pre-commit
