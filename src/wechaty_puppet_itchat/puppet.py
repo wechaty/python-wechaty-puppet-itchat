@@ -156,7 +156,7 @@ def _map_message_type(message_payload: MessagePayload) -> MessagePayload:
 
 
 # pylint: disable=R0904
-class PuppetService(Puppet):
+class PuppetItChat(Puppet):
     """
     grpc wechaty puppet implementation
     """

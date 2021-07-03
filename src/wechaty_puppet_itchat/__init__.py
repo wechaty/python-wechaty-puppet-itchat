@@ -1,7 +1,7 @@
 """
 doc
 """
-from .puppet import PuppetService
+from .puppet import PuppetItChat
 
 from .version import VERSION
 
@@ -9,7 +9,7 @@ from .version import VERSION
 __version__ = VERSION
 
 __all__ = [
-    'PuppetService',
+    'PuppetItChat',
 
     '__version__'
 ]

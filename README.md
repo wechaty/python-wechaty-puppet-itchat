@@ -14,9 +14,9 @@ Python Service Puppet for Wechaty
 ```python
 import asyncio
 from wechaty import Wechaty
-from python_wechaty_puppet_itchat import PuppetService
+from wechaty_puppet_itchat import PuppetItChat
 
-bot = Wechaty(PuppetService())
+bot = Wechaty(PuppetItChat())
 bot.on('message', lambda x: print(x))
 
 asyncio.run(bot.start())
