@@ -36,7 +36,7 @@ from grpclib.client import Channel
 # pylint: disable=E0401
 from pyee import AsyncIOEventEmitter  # type: ignore
 
-from wechaty_puppet.schemas.types import PayloadType    # type: ignore
+from wechaty_puppet.schemas.types import PayloadType  # type: ignore
 
 from wechaty_puppet import (  # type: ignore
     EventScanPayload,
@@ -77,11 +77,6 @@ from wechaty_puppet.exceptions import (  # type: ignore
     WechatyPuppetGrpcError,
     WechatyPuppetOperationError,
     WechatyPuppetPayloadError
-)
-
-from wechaty_puppet_service.config import (
-    get_endpoint,
-    get_token,
 )
 
 log = get_logger('HostiePuppet')
@@ -161,27 +156,16 @@ class PuppetItChat(Puppet):
     grpc wechaty puppet implementation
     """
 
-    def __init__(self, options: PuppetOptions, name: str = 'puppet_service'):
-        """init PuppetService from options or envrionment
+    def __init__(self, options: PuppetOptions, name: str = 'puppet_itchat'):
+        """init PuppetItChat from options or envrionment
 
         Args:
-            options (PuppetOptions): the configuration of PuppetService
-            name (str, optional): [description]. Defaults to 'service_puppet'.
+            options (PuppetOptions): the configuration of PuppetItChat
+            name (str, optional): [description]. Defaults to 'puppet_itchat'.
 
         Raises:
             WechatyPuppetConfigurationError: raise Error when configuraiton occur error
         """
-        token, endpoint = get_token(), get_endpoint()
-
-        if not options.token and not token:
-            raise WechatyPuppetConfigurationError(
-                'wechaty-puppet-service: token not found. please set '
-                'environment<WECHATY_PUPPET_SERVICE_TOKEN|TOKEN|token> as token'
-            )
-
-        options.token = options.token or token
-        options.end_point = options.end_point or endpoint
-
         super().__init__(options, name)
 
         self.channel: Optional[Channel] = None
@@ -522,7 +506,7 @@ class PuppetItChat(Puppet):
         try:
             mini_program = MiniProgramPayload(**response_dict)
         except Exception as e:
-            raise WechatyPuppetPayloadError(f'can"t init mini-program payload {response_dict}')\
+            raise WechatyPuppetPayloadError(f'can"t init mini-program payload {response_dict}') \
                 from e
         return mini_program
 
@@ -867,47 +851,7 @@ class PuppetItChat(Puppet):
         start puppet channel contact_self_qr_code
         """
         log.info('init puppet')
-        if not self.options.token and not self.options.end_point:
-            raise WechatyPuppetConfigurationError(
-                'Please set a valid envrioment<WECHATY_PUPPET_SERVICE_TOKEN|ENDPOINT|endpoint> or '
-                '<WECHATY_PUPPET_SERVICE_ENDPOINT|ENDPOINT|endpoint>'
-            )
-        # otherwise load them from server by the token
-        if not self.options.end_point:
-            # Query the end_point by the token.
-            log.info('There is no endpoint in cache, trying to fetch endpoint with token.')
-            # TODO: the endpoint should be
-            response = requests.get(
-                f'https://api.chatie.io/v0/hosties/{self.options.token}'
-            )
-
-            if response.status_code != 200:
-                raise WechatyPuppetGrpcError('service server is invalid ... ')
-
-            data = response.json()
-
-            if 'ip' not in data or data['ip'] == '0.0.0.0':
-                raise WechatyPuppetGrpcError(
-                    'Your service token has no available endpoint, is your token correct?'
-                )
-            if 'port' not in data:
-                raise WechatyPuppetGrpcError("can't find service server port")
-            log.debug('get puppet ip address : <%s>', data)
-            self.options.end_point = '{ip}:{port}'.format(**data)
-
-        if not re.match(r'^(?:(?!-)[\d\w-]{1,63}(?<!-)\.)+(?!-)[\d\w]{1,63}(?<!-):\d{2,5}$',
-                        self.options.end_point):
-            raise WechatyPuppetConfigurationError(
-                'Malformed endpoint format, should be {hostname}:{port}'
-            )
-
-        host, port = self.options.end_point.split(':')
-        self.channel = Channel(host=host, port=port)
-
-        # pylint: disable=W0212
-        self.channel._authority = self.options.token
-
-        self._puppet_stub = PuppetStub(self.channel)
+        pass
 
     async def start(self) -> None:
         """
@@ -974,7 +918,7 @@ class PuppetItChat(Puppet):
         :param data:
         :return:
         """
-        log.debug('send ding info to service server ...')
+        log.debug('send ding info to itchat server ...')
 
         await self.puppet_stub.ding(data=data)
 

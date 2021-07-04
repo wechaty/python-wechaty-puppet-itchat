@@ -1,10 +1,10 @@
-# wechaty-puppet-service [![Python 3.7](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/release/python-370/) 
+# wechaty-puppet-itchat [![Python 3.7](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/release/python-370/) 
 
 [![Powered by Wechaty](https://img.shields.io/badge/Powered%20By-Wechaty-brightgreen.svg)](https://github.com/wechaty/wechaty)
 
 ![Service](https://wechaty.github.io/wechaty-puppet-service/images/hostie.png)
 
-Python Service Puppet for Wechaty
+Python Puppet for Wechaty
 
 ## Features
 

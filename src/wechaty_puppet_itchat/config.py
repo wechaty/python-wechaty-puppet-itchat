@@ -20,24 +20,6 @@ limitations under the License.
 """
 import os
 # TODO: need to fix error -> found module but no type hints or library stubs
-from wechaty_puppet import get_logger   # type: ignore
+from wechaty_puppet import get_logger  # type: ignore
 
-logger = get_logger('WechatyPuppetServiceConfig')
-
-
-def get_token():
-    """
-    get the token from environment variable
-    """
-    return os.environ.get('WECHATY_PUPPET_SERVICE_TOKEN', None) or \
-        os.environ.get('TOKEN', None) or \
-        os.environ.get('token', None) or None
-
-
-def get_endpoint():
-    """
-    get the endpoint from environment variable
-    """
-    return os.environ.get('WECHATY_PUPPET_SERVICE_ENDPOINT', None) or \
-        os.environ.get('ENDPOINT', None) or \
-        os.environ.get('endpoint', None) or None
+logger = get_logger('WechatyPuppetItChatConfig')

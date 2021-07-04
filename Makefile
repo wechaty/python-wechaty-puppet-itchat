@@ -118,4 +118,4 @@ version:
 
 .PHONY: deploy-version
 deploy-version:
-	echo "VERSION = '$$(cat VERSION)'" > src/wechaty_puppet_service/version.py
+	echo "VERSION = '$$(cat VERSION)'" > src/wechaty_puppet_itchat/version.py
