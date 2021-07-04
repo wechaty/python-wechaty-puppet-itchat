@@ -79,7 +79,7 @@ from wechaty_puppet.exceptions import (  # type: ignore
     WechatyPuppetPayloadError
 )
 
-log = get_logger('HostiePuppet')
+log = get_logger('ItChatPuppet')
 
 
 def _map_message_type(message_payload: MessagePayload) -> MessagePayload:
