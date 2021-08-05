@@ -22,15 +22,18 @@ from __future__ import annotations
 
 import json
 import re
+import asyncio
+import types
 import pickle
 from typing import Optional, List
 from functools import reduce
 from dataclasses import asdict
 import xml.dom.minidom  # type: ignore
 
-import itchat
+from src import itchat
+from itchat import Core
+from itchat.content import *
 import requests
-
 
 # pylint: disable=E0401
 from grpclib.client import Channel
@@ -157,7 +160,7 @@ class PuppetItChat(Puppet):
     grpc wechaty puppet implementation
     """
 
-    def __init__(self, name: str = 'puppet_itchat'):
+    def __init__(self, options: PuppetOptions, name: str = 'puppet_itchat'):
         """init PuppetItChat from options or envrionment
 
         Args:
@@ -167,7 +170,7 @@ class PuppetItChat(Puppet):
         Raises:
             WechatyPuppetConfigurationError: raise Error when configuraiton occur error
         """
-        super().__init__(name)
+        super().__init__(options, name)
 
         self.channel: Optional[Channel] = None
         # self._puppet_stub: Optional[PuppetStub] = None
@@ -179,8 +182,6 @@ class PuppetItChat(Puppet):
         self.puppet_options = None
 
         self.puppet = self
-
-
 
     # @property
     # def puppet_stub(self) -> PuppetStub:
@@ -230,7 +231,7 @@ class PuppetItChat(Puppet):
         :return:
         """
         # TODO -> if the event is listened twice, how to handle this problem
-        # self._event_stream.on(event_name, caller)
+        self._event_stream.on(event_name, caller)
 
     def listener_count(self, event_name: str) -> int:
         """
@@ -238,8 +239,8 @@ class PuppetItChat(Puppet):
         :param event_name:
         :return:
         """
-        # listeners = self._event_stream.listeners(event_name)
-        # return len(listeners)
+        listeners = self._event_stream.listeners(event_name)
+        return len(listeners)
 
     async def contact_list(self) -> List[str]:
         """
@@ -869,7 +870,6 @@ class PuppetItChat(Puppet):
 
         log.info('starting the puppet ...')
         await self._listen_for_event()
-        self.itchat.run()
         log.info('puppet has started ...')
         return None
 
@@ -910,9 +910,9 @@ class PuppetItChat(Puppet):
         login the account
         :return:
         """
-        # self.login_user_id = user_id
-        # payload = EventLoginPayload(contact_id=user_id)
-        # self._event_stream.emit('login', payload)
+        self.login_user_id = user_id
+        payload = EventLoginPayload(contact_id=user_id)
+        self._event_stream.emit('login', payload)
 
     async def ding(self, data: Optional[str] = ''):
         """
@@ -931,36 +931,94 @@ class PuppetItChat(Puppet):
         """
         log.info('listening the event from the puppet ...')
 
-        if self.itchat.check_login() != 200:
-            try:
-                uuid = self.itchat.get_QRuuid()
-                payload = EventScanPayload(
-                    status=ScanStatus.Waiting,
-                    qrcode='https://login.weixin.qq.com/l/' + uuid,
-                    data=None)
-                self._event_stream.emit('scan', payload)
-                self.itchat.auto_login(hotReload=True)
+        # if self.itchat.check_login() != 200:
+        #     try:
+        #         uuid = self.itchat.get_QRuuid()
+        #         print(uuid)
+        #         payload = EventScanPayload(
+        #             status=ScanStatus.Waiting,
+        #             qrcode='https://login.weixin.qq.com/l/' + uuid,
+        #             data=None)
+        #         self._event_stream.emit('scan', payload)
+        #         self.itchat.auto_login(hotReload=True)
+        #         try:
+        #             with open('itchat.pkl', 'rb') as f:
+        #                 j = pickle.load(f)
+        #             login_user_id = j['loginInfo']['wxsid']
+        #             log.info('receive login info <%s>', login_user_id)
+        #             event_login_payload = EventLoginPayload(
+        #                 contact_id=login_user_id)
+        #             self.login_user_id = login_user_id
+        #             self._event_stream.emit('login', event_login_payload)
+        #             log.info(self.login_user_id)
+        #         except Exception as e:
+        #             log.info('No such file, loading login status failed.')
+        #     except:
+        #         log.error('error happend in login!')
+        #
+        # try:
+        #     @self.itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
+        #     def msg_(msg):
+        #         log.info('receive message info <%s>', msg.text)
+        #         event_message_payload = EventMessagePayload(
+        #             message_id=msg['MsgId'])
+        #         self._event_stream.emit('message', event_message_payload)
+        # except Exception as e:
+        #     print(e)
+        #     log.error('error happened in receive message')
+
+        async def on_scan(uuid: str, status: str, qrcode: bytes):
+            payload = EventScanPayload(
+                status=ScanStatus.Waiting,
+                qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{uuid}"
+            )
+            print(payload.qrcode)
+            # self._event_stream.emit('on-test', payload)
+            self._event_stream.emit('scan', payload)
+
+        async def on_logined(*args, **kwargs):
+            print(*args)
+            print(**kwargs)
+
+        async def on_logout(*args, **kwargs):
+            print(*args)
+            print(**kwargs)
+
+        await itchat.login(
+            enableCmdQR=True,
+            qrCallback=on_scan,
+            EventScanPayload=EventScanPayload,
+            ScanStatus=ScanStatus,
+            event_stream=self._event_stream,
+            loginCallback=on_logined,
+            exitCallback=on_logout
+        )
+        self._event_stream.emit('heartbeat', {'data': 'init!'})
+
+        @itchat.msg_register(itchat.content.TEXT)
+        async def on_message(msg):
+            log.info('receive message info <%s>', msg.text)
+            event_message_payload = EventMessagePayload(
+                message_id=msg.text)
+            self._event_stream.emit('message', event_message_payload)
+            print(msg.text)
+
+        async def run(self, debug=False, blockThread=True):
+            def reply_fn():
                 try:
-                    with open('itchat.pkl', 'rb') as f:
-                        j = pickle.load(f)
-                    login_user_id = j['loginInfo']['wxsid']
+                    while self.alive:
+                        self.configured_reply()
+                except KeyboardInterrupt:
+                    if self.useHotReload:
+                        self.dump_login_status()
+                    self.alive = False
 
-                    log.debug('receive login info <%s>', )
-                    event_login_payload = EventLoginPayload(
-                        contact_id=login_user_id)
-                    self.login_user_id = login_user_id
-                    self._event_stream.emit('login', event_login_payload)
-                except Exception as e:
-                    log.debug('No such file, loading login status failed.')
-            except:
-                log.error('error happend in login!')
-        elif self.itchat.check_login() == 200:
-            try:
-                self.itchat.start_receiving()
-            except:
-                log.error('error happend in receive message')
+            while True:
+                await asyncio.sleep(0.5)
+                reply_fn()
 
-
+        itchat.run = types.MethodType(run, itchat.originInstance)
+        await itchat.run()
         # async for response in self.puppet_stub.event():
         #     if response is not None:
         #         payload_data: dict = json.loads(response.payload)
@@ -1053,12 +1111,12 @@ class PuppetItChat(Puppet):
         #             payload = EventReadyPayload(**payload_data)
         #             self._event_stream.emit('ready', payload)
         #
-                # elif response.type == int(EventType.EVENT_TYPE_LOGIN):
-                #     log.debug('receive login info <%s>', payload_data)
-                #     event_login_payload = EventLoginPayload(
-                #         contact_id=payload_data['contactId'])
-                #     self.login_user_id = payload_data.get('contactId', None)
-                #     self._event_stream.emit('login', event_login_payload)
+        # elif response.type == int(EventType.EVENT_TYPE_LOGIN):
+        #     log.debug('receive login info <%s>', payload_data)
+        #     event_login_payload = EventLoginPayload(
+        #         contact_id=payload_data['contactId'])
+        #     self.login_user_id = payload_data.get('contactId', None)
+        #     self._event_stream.emit('login', event_login_payload)
         #
         #         elif response.type == int(EventType.EVENT_TYPE_LOGOUT):
         #             log.debug('receive logout info <%s>', payload_data)
