@@ -1,3 +1,5 @@
 pyee
 requests
-itchat
+# itchat
+pyppeteer
+httplib

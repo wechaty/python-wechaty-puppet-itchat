@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import re
+import os
 import asyncio
 import types
 import pickle
@@ -31,6 +32,8 @@ from dataclasses import asdict
 import xml.dom.minidom  # type: ignore
 
 from src import itchat
+import pickle
+
 from itchat import Core
 from itchat.content import *
 import requests
@@ -984,7 +987,7 @@ class PuppetItChat(Puppet):
             print(*args)
             print(**kwargs)
 
-        await itchat.login(
+        await self.itchat.login(
             enableCmdQR=True,
             qrCallback=on_scan,
             EventScanPayload=EventScanPayload,
@@ -993,21 +996,24 @@ class PuppetItChat(Puppet):
             loginCallback=on_logined,
             exitCallback=on_logout
         )
+
         self._event_stream.emit('heartbeat', {'data': 'init!'})
 
-        @itchat.msg_register(itchat.content.TEXT)
+        @self.itchat.msg_register(self.itchat.content.TEXT)
         async def on_message(msg):
             log.info('receive message info <%s>', msg.text)
             event_message_payload = EventMessagePayload(
                 message_id=msg.text)
             self._event_stream.emit('message', event_message_payload)
+            if msg['Content'] == 'ding':
+                return 'dong'
             print(msg.text)
 
         async def run(self, debug=False, blockThread=True):
-            def reply_fn():
+            async def reply_fn():
                 try:
                     while self.alive:
-                        self.configured_reply()
+                        await self.configured_reply()
                 except KeyboardInterrupt:
                     if self.useHotReload:
                         self.dump_login_status()
@@ -1015,10 +1021,11 @@ class PuppetItChat(Puppet):
 
             while True:
                 await asyncio.sleep(0.5)
-                reply_fn()
+                await reply_fn()
 
-        itchat.run = types.MethodType(run, itchat.originInstance)
-        await itchat.run()
+        self.itchat.run = types.MethodType(run, self.itchat.originInstance)
+        await self.itchat.run()
+
         # async for response in self.puppet_stub.event():
         #     if response is not None:
         #         payload_data: dict = json.loads(response.payload)

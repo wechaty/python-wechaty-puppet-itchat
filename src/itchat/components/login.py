@@ -32,7 +32,6 @@ def load_login(core):
     core.get_msg           = get_msg
     core.logout            = logout
 
-
 async def login(self, enableCmdQR=False, picDir=None, qrCallback=None, EventScanPayload=None,ScanStatus=None,event_stream=None,
         loginCallback=None, exitCallback=None):
     if self.alive or self.isLogging:

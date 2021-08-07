@@ -279,7 +279,7 @@ async def send_raw_msg(self, msgType, content, toUserName):
 
 async def send_msg(self, msg='Test Message', toUserName=None):
     logger.debug('Request to send a text message to %s: %s' % (toUserName, msg))
-    r = self.send_raw_msg(1, msg, toUserName)
+    r = await self.send_raw_msg(1, msg, toUserName)
     return r
 
 def _prepare_file(fileDir, file_=None):
@@ -509,7 +509,7 @@ async def send(self, msg, toUserName=None, mediaId=None):
         else:
             r = self.send_video(msg[5:], toUserName, mediaId)
     else:
-        r = self.send_msg(msg, toUserName)
+        r = await self.send_msg(msg, toUserName)
     return r
 
 async def revoke(self, msgId, toUserName, localId=None):
