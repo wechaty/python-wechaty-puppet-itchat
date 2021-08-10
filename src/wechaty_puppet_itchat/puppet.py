@@ -327,7 +327,8 @@ class PuppetItChat(Puppet):
         # response = await self.puppet_stub.message_send_text(
         #     conversation_id=conversation_id,
         #     text=message, mentonal_ids=mention_ids)
-        # return response.id
+        await self.itchat.send(message, toUserName=conversation_id)
+        return
 
     async def message_send_contact(self, contact_id: str,
                                    conversation_id: str) -> str:
@@ -421,29 +422,29 @@ class PuppetItChat(Puppet):
         :param message_id:
         :return:
         """
-        # payload = await self.message_payload(message_id=message_id)
-        # if payload.type == MessageType.MESSAGE_TYPE_TEXT:
-        #     if not payload.text:
-        #         raise Exception('no text')
-        #     await self.message_send_text(conversation_id=to_id, message=payload.text)
-        # elif payload.type == MessageType.MESSAGE_TYPE_URL:
-        #     url_payload = await self.message_url(message_id=message_id)
-        #     await self.message_send_url(conversation_id=to_id, url=url_payload.url)
-        # elif payload.type == MessageType.MESSAGE_TYPE_MINI_PROGRAM:
-        #     mini_program = await self.message_mini_program(message_id=message_id)
-        #     await self.message_send_mini_program(conversation_id=to_id, mini_program=mini_program)
-        # elif payload.type == MessageType.MESSAGE_TYPE_EMOTICON:
-        #     file_box = await self.message_emoticon(message=payload.text)
-        #     await self.message_send_file(conversation_id=to_id, file=file_box)
-        # elif payload.type == MessageType.MESSAGE_TYPE_AUDIO:
-        #     raise WechatyPuppetOperationError('Can not support audio message forward')
-        # # elif payload.type == MessageType.ChatHistory:
-        # elif payload.type == MessageType.MESSAGE_TYPE_IMAGE:
-        #     file_box = await self.message_image(message_id=message_id, image_type=3)
-        #     await self.message_send_file(conversation_id=to_id, file=file_box)
-        # else:
-        #     file_box = await self.message_file(message_id=message_id)
-        #     await self.message_send_file(conversation_id=to_id, file=file_box)
+        payload = await self.message_payload(message_id=message_id)
+        if payload.type == MessageType.MESSAGE_TYPE_TEXT:
+            if not payload.text:
+                raise Exception('no text')
+            await self.message_send_text(conversation_id=to_id, message=payload.text)
+        elif payload.type == MessageType.MESSAGE_TYPE_URL:
+            url_payload = await self.message_url(message_id=message_id)
+            await self.message_send_url(conversation_id=to_id, url=url_payload.url)
+        elif payload.type == MessageType.MESSAGE_TYPE_MINI_PROGRAM:
+            mini_program = await self.message_mini_program(message_id=message_id)
+            await self.message_send_mini_program(conversation_id=to_id, mini_program=mini_program)
+        elif payload.type == MessageType.MESSAGE_TYPE_EMOTICON:
+            file_box = await self.message_emoticon(message=payload.text)
+            await self.message_send_file(conversation_id=to_id, file=file_box)
+        elif payload.type == MessageType.MESSAGE_TYPE_AUDIO:
+            raise WechatyPuppetOperationError('Can not support audio message forward')
+        # elif payload.type == MessageType.ChatHistory:
+        elif payload.type == MessageType.MESSAGE_TYPE_IMAGE:
+            file_box = await self.message_image(message_id=message_id, image_type=3)
+            await self.message_send_file(conversation_id=to_id, file=file_box)
+        else:
+            file_box = await self.message_file(message_id=message_id)
+            await self.message_send_file(conversation_id=to_id, file=file_box)
 
     async def message_file(self, message_id: str) -> FileBox:
         """
@@ -934,42 +935,6 @@ class PuppetItChat(Puppet):
         """
         log.info('listening the event from the puppet ...')
 
-        # if self.itchat.check_login() != 200:
-        #     try:
-        #         uuid = self.itchat.get_QRuuid()
-        #         print(uuid)
-        #         payload = EventScanPayload(
-        #             status=ScanStatus.Waiting,
-        #             qrcode='https://login.weixin.qq.com/l/' + uuid,
-        #             data=None)
-        #         self._event_stream.emit('scan', payload)
-        #         self.itchat.auto_login(hotReload=True)
-        #         try:
-        #             with open('itchat.pkl', 'rb') as f:
-        #                 j = pickle.load(f)
-        #             login_user_id = j['loginInfo']['wxsid']
-        #             log.info('receive login info <%s>', login_user_id)
-        #             event_login_payload = EventLoginPayload(
-        #                 contact_id=login_user_id)
-        #             self.login_user_id = login_user_id
-        #             self._event_stream.emit('login', event_login_payload)
-        #             log.info(self.login_user_id)
-        #         except Exception as e:
-        #             log.info('No such file, loading login status failed.')
-        #     except:
-        #         log.error('error happend in login!')
-        #
-        # try:
-        #     @self.itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
-        #     def msg_(msg):
-        #         log.info('receive message info <%s>', msg.text)
-        #         event_message_payload = EventMessagePayload(
-        #             message_id=msg['MsgId'])
-        #         self._event_stream.emit('message', event_message_payload)
-        # except Exception as e:
-        #     print(e)
-        #     log.error('error happened in receive message')
-
         async def on_scan(uuid: str, status: str, qrcode: bytes):
             payload = EventScanPayload(
                 status=ScanStatus.Waiting,
@@ -979,9 +944,11 @@ class PuppetItChat(Puppet):
             # self._event_stream.emit('on-test', payload)
             self._event_stream.emit('scan', payload)
 
-        async def on_logined(*args, **kwargs):
-            print(*args)
-            print(**kwargs)
+        async def on_logined(uuid: str):
+            event_login_payload = EventLoginPayload(contact_id=uuid)
+            self.login_user_id = uuid
+            self._event_stream.emit('login', event_login_payload)
+
 
         async def on_logout(*args, **kwargs):
             print(*args)
@@ -1005,26 +972,29 @@ class PuppetItChat(Puppet):
             event_message_payload = EventMessagePayload(
                 message_id=msg.text)
             self._event_stream.emit('message', event_message_payload)
+            await self.message_send_text(conversation_id='filehelper', message='dong')
+            self._event_stream.emit('login', EventLoginPayload(contact_id='12321')) # 测试一下能否发emit，发现不行
             if msg['Content'] == 'ding':
                 return 'dong'
             print(msg.text)
 
-        async def run(self, debug=False, blockThread=True):
+        async def run(self, event_stream, payload, debug=False, blockThread=True):
             async def reply_fn():
                 try:
                     while self.alive:
-                        await self.configured_reply()
+                        await self.configured_reply(event_stream=event_stream, payload=payload)
                 except KeyboardInterrupt:
                     if self.useHotReload:
-                        self.dump_login_status()
+                        await self.dump_login_status()
                     self.alive = False
 
             while True:
                 await asyncio.sleep(0.5)
                 await reply_fn()
 
+        event_stream=self._event_stream
         self.itchat.run = types.MethodType(run, self.itchat.originInstance)
-        await self.itchat.run()
+        await self.itchat.run(event_stream=event_stream, payload=EventMessagePayload)
 
         # async for response in self.puppet_stub.event():
         #     if response is not None:

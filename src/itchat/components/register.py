@@ -16,7 +16,8 @@ def load_register(core):
     core.msg_register     = msg_register
     core.run              = run
 
-async def auto_login(self, hotReload=False, statusStorageDir='itchat.pkl',
+async def auto_login(self, EventScanPayload=None,ScanStatus=None,event_stream=None,
+        hotReload=True, statusStorageDir='itchat.pkl',
         enableCmdQR=False, picDir=None, qrCallback=None,
         loginCallback=None, exitCallback=None):
     if not test_connect():
@@ -28,14 +29,14 @@ async def auto_login(self, hotReload=False, statusStorageDir='itchat.pkl',
         if await self.load_login_status(statusStorageDir,
                 loginCallback=loginCallback, exitCallback=exitCallback):
             return
-        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback,
+        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback, EventScanPayload=EventScanPayload, ScanStatus=ScanStatus, event_stream=event_stream,
             loginCallback=loginCallback, exitCallback=exitCallback)
         await self.dump_login_status(statusStorageDir)
     else:
-        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback,
+        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback, EventScanPayload=EventScanPayload, ScanStatus=ScanStatus, event_stream=event_stream,
             loginCallback=loginCallback, exitCallback=exitCallback)
 
-async def configured_reply(self):
+async def configured_reply(self, event_stream, payload):
     ''' determine the type of message and reply if its method is defined
         however, I use a strange way to determine whether a msg is from massive platform
         I haven't found a better solution here
@@ -44,6 +45,8 @@ async def configured_reply(self):
     '''
     try:
         msg = self.msgList.get(timeout=1)
+        print(msg)
+        event_stream.emit('message', payload(message_id=msg.text))
     except Queue.Empty:
         pass
     else:

@@ -34,7 +34,7 @@ class Core(object):
 
 
     @staticmethod
-    def from_cache() -> Core:
+    def from_cache():
         cache_dir = '.wechaty'
         os.makedirs(cache_dir, exist_ok=True)
         cache_file = os.path.join(cache_dir, 'session.pkl')

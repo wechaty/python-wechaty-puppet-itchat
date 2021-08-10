@@ -1,3 +1,4 @@
+import asyncio
 import os, time, re, io
 import threading
 import json
@@ -89,7 +90,7 @@ async def login(self, enableCmdQR=False, picDir=None, qrCallback=None, EventScan
     await self.show_mobile_login()
     self.get_contact(True)
     if hasattr(loginCallback, '__call__'):
-        r = await loginCallback()
+        r = await loginCallback(uuid)
     else:
         utils.clear_screen()
         if os.path.exists(picDir or config.DEFAULT_QR):
