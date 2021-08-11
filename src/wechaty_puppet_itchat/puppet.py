@@ -25,18 +25,12 @@ import re
 import os
 import asyncio
 import types
-import pickle
 from typing import Optional, List
 from functools import reduce
 from dataclasses import asdict
 import xml.dom.minidom  # type: ignore
 
 from src import itchat
-import pickle
-
-from itchat import Core
-from itchat.content import *
-import requests
 
 # pylint: disable=E0401
 from grpclib.client import Channel
@@ -176,25 +170,10 @@ class PuppetItChat(Puppet):
         super().__init__(options, name)
 
         self.channel: Optional[Channel] = None
-        # self._puppet_stub: Optional[PuppetStub] = None
-
         self._event_stream: AsyncIOEventEmitter = AsyncIOEventEmitter()
-
         self.login_user_id: Optional[str] = None
-
         self.puppet_options = None
-
         self.puppet = self
-
-    # @property
-    # def puppet_stub(self) -> PuppetStub:
-    #     """
-    #     get the current PuppetStub instance guaranteed to be not null or raises an error.
-    #     :return:
-    #     """
-    #     if self._puppet_stub is None:
-    #         raise WechatyPuppetError('puppet_stub should not be none')
-    #     return self._puppet_stub
 
     async def room_list(self) -> List[str]:
         """
@@ -255,6 +234,7 @@ class PuppetItChat(Puppet):
         #     # TODO -> need to refactor the raised error
         #     raise WechatyPuppetGrpcError('response is invalid')
         # return response.ids
+        # contacts = self.itchat.get_contact
 
     async def tag_contact_delete(self, tag_id: str) -> None:
         """
@@ -871,7 +851,6 @@ class PuppetItChat(Puppet):
         :return:
         """
         self._init_puppet()
-
         log.info('starting the puppet ...')
         await self._listen_for_event()
         log.info('puppet has started ...')
@@ -881,33 +860,27 @@ class PuppetItChat(Puppet):
         """
         stop the grpc channel connection
         """
-        # log.info('stop()')
-        # self._event_stream.remove_all_listeners()
-        # if self._puppet_stub is not None:
-        #     await self._puppet_stub.stop()
-        #     self._puppet_stub = None
-        # if self.channel:
-        #     self.channel.close()
-        #     self.channel = None
+        log.info('stop()')
+        self._event_stream.remove_all_listeners()
 
     async def logout(self):
         """
         logout the account
         :return:
         """
-        # log.info('logout()')
-        # if self.login_user_id is None:
-        #     raise WechatyPuppetOperationError('logout before login?')
-        #
-        # try:
-        #     await self.puppet_stub.logout()
-        # # pylint: disable=W0703
-        # except Exception as exception:
-        #     log.error('logout() rejection %s', exception)
-        # finally:
-        #     payload = EventLogoutPayload(contact_id=self.login_user_id)
-        #     self._event_stream.emit('logout', payload)
-        #     self.login_user_id = None
+        log.info('logout()')
+        if self.login_user_id is None:
+            raise WechatyPuppetOperationError('logout before login?')
+
+        try:
+            await self.itchat.logout()
+        # pylint: disable=W0703
+        except Exception as exception:
+            log.error('logout() rejection %s', exception)
+        finally:
+            payload = EventLogoutPayload(contact_id=self.login_user_id, data='')
+            self._event_stream.emit('logout', payload)
+            self.login_user_id = None
 
     async def login(self, user_id: str):
         """
@@ -935,24 +908,22 @@ class PuppetItChat(Puppet):
         """
         log.info('listening the event from the puppet ...')
 
-        async def on_scan(uuid: str, status: str, qrcode: bytes):
+        async def on_scan(uuid: str):
             payload = EventScanPayload(
                 status=ScanStatus.Waiting,
                 qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{uuid}"
             )
-            print(payload.qrcode)
-            # self._event_stream.emit('on-test', payload)
             self._event_stream.emit('scan', payload)
 
-        async def on_logined(uuid: str):
-            event_login_payload = EventLoginPayload(contact_id=uuid)
-            self.login_user_id = uuid
+        async def on_logined(userName: str):
+            event_login_payload = EventLoginPayload(contact_id=userName)
+            self.login_user_id = userName
             self._event_stream.emit('login', event_login_payload)
 
-
-        async def on_logout(*args, **kwargs):
-            print(*args)
-            print(**kwargs)
+        async def on_logout(userName: str):
+            payload = EventLogoutPayload(contact_id=userName)
+            self.login_user_id = None
+            self._event_stream.emit('logout', payload)
 
         await self.itchat.login(
             enableCmdQR=True,
@@ -964,19 +935,26 @@ class PuppetItChat(Puppet):
             exitCallback=on_logout
         )
 
-        self._event_stream.emit('heartbeat', {'data': 'init!'})
-
         @self.itchat.msg_register(self.itchat.content.TEXT)
         async def on_message(msg):
             log.info('receive message info <%s>', msg.text)
             event_message_payload = EventMessagePayload(
-                message_id=msg.text)
+                message_id=msg['MsgId'],
+                type=msg['Type'],
+                from_id=msg['FromUserName'],
+                filename=msg['FileName'],
+                text=msg['Text'],
+                timestamp=msg['CreateTime'],
+                to_id=msg['ToUserName']
+            )
             self._event_stream.emit('message', event_message_payload)
             await self.message_send_text(conversation_id='filehelper', message='dong')
-            self._event_stream.emit('login', EventLoginPayload(contact_id='12321')) # 测试一下能否发emit，发现不行
             if msg['Content'] == 'ding':
                 return 'dong'
-            print(msg.text)
+            print(self.itchat.get_contact())
+            print(self.itchat.get_friends())
+            print(self.itchat.get_chatrooms())
+            return self.itchat.get_contact()
 
         async def run(self, event_stream, payload, debug=False, blockThread=True):
             async def reply_fn():
@@ -992,9 +970,8 @@ class PuppetItChat(Puppet):
                 await asyncio.sleep(0.5)
                 await reply_fn()
 
-        event_stream=self._event_stream
         self.itchat.run = types.MethodType(run, self.itchat.originInstance)
-        await self.itchat.run(event_stream=event_stream, payload=EventMessagePayload)
+        await self.itchat.run(event_stream=self._event_stream, payload=EventMessagePayload)
 
         # async for response in self.puppet_stub.event():
         #     if response is not None:
