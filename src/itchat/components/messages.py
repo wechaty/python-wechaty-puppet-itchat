@@ -303,7 +303,7 @@ def _prepare_file(fileDir, file_=None):
     fileDict['file_'] = io.BytesIO(file_)
     return fileDict
 
-async def upload_file(self, fileDir, isPicture=False, isVideo=False,
+def upload_file(self, fileDir, isPicture=False, isVideo=False,
         toUserName='filehelper', file_=None, preparedFile=None):
     logger.debug('Request to upload a %s: %s' % (
         'picture' if isPicture else 'video' if isVideo else 'file', fileDir))
@@ -337,7 +337,7 @@ async def upload_file(self, fileDir, isPicture=False, isVideo=False,
         return ReturnValue(r)
     return ReturnValue(rawResponse=r)
 
-async def upload_chunk_file(core, fileDir, fileSymbol, fileSize,
+def upload_chunk_file(core, fileDir, fileSymbol, fileSize,
         file_, chunk, chunks, uploadMediaRequest):
     url = core.loginInfo.get('fileUrl', core.loginInfo['url']) + \
         '/webwxuploadmedia?f=json'

@@ -174,6 +174,7 @@ class PuppetItChat(Puppet):
         self.login_user_id: Optional[str] = None
         self.puppet_options = None
         self.puppet = self
+        self.itchat = itchat
 
     async def room_list(self) -> List[str]:
         """
@@ -184,6 +185,7 @@ class PuppetItChat(Puppet):
         # if response is None:
         #     raise WechatyPuppetGrpcError('can"t get room_list response')
         # return response.ids
+        return [i['UserName'] for i in self.itchat.get_chatrooms()]
 
     async def message_image(self, message_id: str, image_type: ImageType = 3
                             ) -> FileBox:
@@ -229,12 +231,7 @@ class PuppetItChat(Puppet):
         get contact list
         :return:
         """
-        # response = await self.puppet_stub.contact_list()
-        # if response is None:
-        #     # TODO -> need to refactor the raised error
-        #     raise WechatyPuppetGrpcError('response is invalid')
-        # return response.ids
-        # contacts = self.itchat.get_contact
+        return [i['UserName'] for i in self.itchat.get_friends()]
 
     async def tag_contact_delete(self, tag_id: str) -> None:
         """
@@ -304,11 +301,12 @@ class PuppetItChat(Puppet):
         :param mention_ids:
         :return:
         """
+        # TODO: it seems that itchat can't send mentonal message.
         # response = await self.puppet_stub.message_send_text(
         #     conversation_id=conversation_id,
         #     text=message, mentonal_ids=mention_ids)
-        await self.itchat.send(message, toUserName=conversation_id)
-        return
+        response = await self.itchat.send_msg(message, toUserName=conversation_id)
+        return response['MsgID']
 
     async def message_send_contact(self, contact_id: str,
                                    conversation_id: str) -> str:
@@ -318,6 +316,7 @@ class PuppetItChat(Puppet):
         :param conversation_id:
         :return:
         """
+        # TODO: it seems that itchat can't send contact message.
         # response = await self.puppet_stub.message_send_contact(
         #     conversation_id=conversation_id,
         #     contact_id=contact_id
@@ -332,11 +331,16 @@ class PuppetItChat(Puppet):
         :param file:
         :return:
         """
-        # response = await self.puppet_stub.message_send_file(
-        #     conversation_id=conversation_id,
-        #     filebox=file.to_json_str()
-        # )
-        # return response.id
+        if file.name.endswith('.jpg') or file.name.endswith('.jpeg') or file.name.endswith('.png') or file.name.endswith('.gif') or file.name.endswith('.bmp'):
+            file_path = file.name
+            await file.to_file(file_path=file_path, overwrite=True)
+            response = await self.itchat.send_image(fileDir=file_path, toUserName=conversation_id)
+            return response['MsgID']
+        else:
+            file_path = file.name
+            await file.to_file(overwrite=True)
+            response = await self.itchat.send_file(fileDir=file_path, toUserName=conversation_id)
+            return response['MsgID']
 
     async def message_send_url(self, conversation_id: str, url: str) -> str:
         """
@@ -345,6 +349,7 @@ class PuppetItChat(Puppet):
         :param url:
         :return:
         """
+        # TODO: it seems that itchat can't send url message.
         # response = await self.puppet_stub.message_send_url(
         #     conversation_id=conversation_id,
         #     url_link=url
@@ -360,6 +365,7 @@ class PuppetItChat(Puppet):
         :param mini_program:
         :return:
         """
+        # TODO: it seems that itchat can't send mini program message.
         # response = await self.puppet_stub.message_send_mini_program(
         #     conversation_id=conversation_id,
         #     # TODO -> check mini_program key
@@ -838,19 +844,11 @@ class PuppetItChat(Puppet):
         #     id=payload_id
         # )
 
-    def _init_puppet(self):
-        """
-        start puppet channel contact_self_qr_code
-        """
-        log.info('init puppet')
-        self.itchat = itchat
-
     async def start(self) -> None:
         """
         start puppet_stub
         :return:
         """
-        self._init_puppet()
         log.info('starting the puppet ...')
         await self._listen_for_event()
         log.info('puppet has started ...')
@@ -871,7 +869,6 @@ class PuppetItChat(Puppet):
         log.info('logout()')
         if self.login_user_id is None:
             raise WechatyPuppetOperationError('logout before login?')
-
         try:
             await self.itchat.logout()
         # pylint: disable=W0703
@@ -921,7 +918,7 @@ class PuppetItChat(Puppet):
             self._event_stream.emit('login', event_login_payload)
 
         async def on_logout(userName: str):
-            payload = EventLogoutPayload(contact_id=userName)
+            payload = EventLogoutPayload(contact_id=userName, data='')
             self.login_user_id = None
             self._event_stream.emit('logout', payload)
 
@@ -948,15 +945,29 @@ class PuppetItChat(Puppet):
                 to_id=msg['ToUserName']
             )
             self._event_stream.emit('message', event_message_payload)
+
+            # test send text message
             await self.message_send_text(conversation_id='filehelper', message='dong')
+
+            # test send image message
+            file_box = FileBox.from_url(
+                'https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/'
+                'u=1116676390,2305043183&fm=26&gp=0.jpg',
+                name='ding-dong.jpg')
+            await self.message_send_file(conversation_id='filehelper', file=file_box)
+
+            # test get friends
+            cl = await self.contact_list()
+            print(cl)
+
+            # test get rooms
+            rl = await self.room_list()
+            print(rl)
+
             if msg['Content'] == 'ding':
                 return 'dong'
-            print(self.itchat.get_contact())
-            print(self.itchat.get_friends())
-            print(self.itchat.get_chatrooms())
-            return self.itchat.get_contact()
 
-        async def run(self, event_stream, payload, debug=False, blockThread=True):
+        async def run(self, event_stream, payload):
             async def reply_fn():
                 try:
                     while self.alive:
@@ -972,114 +983,3 @@ class PuppetItChat(Puppet):
 
         self.itchat.run = types.MethodType(run, self.itchat.originInstance)
         await self.itchat.run(event_stream=self._event_stream, payload=EventMessagePayload)
-
-        # async for response in self.puppet_stub.event():
-        #     if response is not None:
-        #         payload_data: dict = json.loads(response.payload)
-        #         if response.type == int(EventType.EVENT_TYPE_SCAN):
-        #             log.debug('receive scan info <%s>', payload_data)
-        #             # create qr_code
-        #             payload = EventScanPayload(
-        #                 status=ScanStatus(payload_data['status']),
-        #                 qrcode=payload_data.get('qrcode', None),
-        #                 data=payload_data.get('data', None)
-        #             )
-        #             self._event_stream.emit('scan', payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_DONG):
-        #             log.debug('receive dong info <%s>', payload_data)
-        #             payload = EventDongPayload(**payload_data)
-        #             self._event_stream.emit('dong', payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_MESSAGE):
-        #             # payload = get_message_payload_from_response(response)
-        #             log.debug('receive message info <%s>', payload_data)
-        #             event_message_payload = EventMessagePayload(
-        #                 message_id=payload_data['messageId'])
-        #             self._event_stream.emit('message', event_message_payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_HEARTBEAT):
-        #             log.debug('receive heartbeat info <%s>', payload_data)
-        #             # Huan(202005) FIXME:
-        #             #   https://github.com/wechaty/python-wechaty-puppet/issues/6
-        #             #   Workaround for unexpected server json payload key: timeout
-        #             # if 'timeout' in payload_data:
-        #             #     del payload_data['timeout']
-        #             payload_data = {'data': payload_data['data']}
-        #             payload = EventHeartbeatPayload(**payload_data)
-        #             self._event_stream.emit('heartbeat', payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_ERROR):
-        #             log.info('receive error info <%s>', payload_data)
-        #             payload = EventErrorPayload(**payload_data)
-        #             self._event_stream.emit('error', payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_FRIENDSHIP):
-        #             log.debug('receive friendship info <%s>', payload_data)
-        #             payload = EventFriendshipPayload(
-        #                 friendship_id=payload_data.get('friendshipId')
-        #             )
-        #             self._event_stream.emit('friendship', payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_ROOM_JOIN):
-        #             log.debug('receive room-join info <%s>', payload_data)
-        #             payload = EventRoomJoinPayload(
-        #                 invited_ids=payload_data.get('inviteeIdList', []),
-        #                 inviter_id=payload_data.get('inviterId'),
-        #                 room_id=payload_data.get('roomId'),
-        #                 timestamp=payload_data.get('timestamp')
-        #             )
-        #             self._event_stream.emit('room-join', payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_ROOM_INVITE):
-        #             log.debug('receive room-invite info <%s>', payload_data)
-        #             payload = EventRoomInvitePayload(
-        #                 room_invitation_id=payload_data.get(
-        #                     'roomInvitationId', None)
-        #             )
-        #             self._event_stream.emit('room-invite', payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_ROOM_LEAVE):
-        #             log.debug('receive room-leave info <%s>', payload_data)
-        #             payload = EventRoomLeavePayload(
-        #                 removed_ids=payload_data.get('removeeIdList', []),
-        #                 remover_id=payload_data.get('removerId'),
-        #                 room_id=payload_data.get('roomId'),
-        #                 timestamp=payload_data.get('timestamp')
-        #             )
-        #             self._event_stream.emit('room-leave', payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_ROOM_TOPIC):
-        #             log.debug('receive room-topic info <%s>', payload_data)
-        #             payload = EventRoomTopicPayload(
-        #                 changer_id=payload_data.get('changerId'),
-        #                 new_topic=payload_data.get('newTopic'),
-        #                 old_topic=payload_data.get('oldTopic'),
-        #                 room_id=payload_data.get('roomId'),
-        #                 timestamp=payload_data.get('timestamp')
-        #             )
-        #             self._event_stream.emit('room-topic', payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_READY):
-        #             log.debug('receive ready info <%s>', payload_data)
-        #             payload = EventReadyPayload(**payload_data)
-        #             self._event_stream.emit('ready', payload)
-        #
-        # elif response.type == int(EventType.EVENT_TYPE_LOGIN):
-        #     log.debug('receive login info <%s>', payload_data)
-        #     event_login_payload = EventLoginPayload(
-        #         contact_id=payload_data['contactId'])
-        #     self.login_user_id = payload_data.get('contactId', None)
-        #     self._event_stream.emit('login', event_login_payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_LOGOUT):
-        #             log.debug('receive logout info <%s>', payload_data)
-        #             payload = EventLogoutPayload(
-        #                 contact_id=payload_data['contactId'],
-        #                 data=payload_data.get('data', None)
-        #             )
-        #             self.login_user_id = None
-        #             self._event_stream.emit('logout', payload)
-        #
-        #         elif response.type == int(EventType.EVENT_TYPE_UNSPECIFIED):
-        #             pass
