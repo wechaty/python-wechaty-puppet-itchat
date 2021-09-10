@@ -4,7 +4,7 @@
 # 	Author: Huan LI <zixia@zixia.net> git.io/zixia
 #
 
-SOURCE_GLOB=$(wildcard bin/*.py src/**/*.py tests/**/*.py)
+SOURCE_GLOB=$(wildcard bin/*.py src/wechaty_puppet_itchat/puppet.py tests/**/*.py)
 
 #
 # Huan(202003)
@@ -29,7 +29,7 @@ lint: pylint pycodestyle flake8 mypy pytype
 pylint:
 	pylint \
 		--load-plugins pylint_quotes \
-		--disable W0511,C0302 \
+		--disable E0401,W0511,C0302 \
 		$(SOURCE_GLOB)
 
 .PHONY: pycodestyle
@@ -53,9 +53,9 @@ mypy:
 
 .PHONE: pytype
 pytype:
-	pytype -V 3.8 \
+	pytype -V 3.7 \
 		--disable=import-error,pyi-error \
-		src/
+		src/wechaty_puppet_itchat/
 
 .PHONY: uninstall-git-hook
 uninstall-git-hook:
@@ -84,7 +84,7 @@ install:
 
 .PHONY: pytest
 pytest:
-	pytest src/ tests/
+	python3 -m pytest src/ tests/ -sv
 
 .PHONY: test-unit
 test-unit: pytest
