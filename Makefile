@@ -4,7 +4,7 @@
 # 	Author: Huan LI <zixia@zixia.net> git.io/zixia
 #
 
-SOURCE_GLOB=$(wildcard bin/*.py src/**/*.py tests/**/*.py)
+SOURCE_GLOB=$(wildcard bin/*.py src/wechaty_puppet_itchat/__init__.py tests/**/*.py)
 
 #
 # Huan(202003)

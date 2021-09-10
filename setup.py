@@ -7,22 +7,22 @@ import setuptools
 
 def versioning(version: str) -> str:
     """version to specification"""
-    sem_ver = semver.parse(version)
+    sem_ver = semver.parse(version, loose=None)
 
-    major = sem_ver['major']
-    minor = sem_ver['minor']
-    patch = str(sem_ver['patch'])
+    # major = sem_ver['major']
+    # minor = sem_ver['minor']
+    # patch = str(sem_ver['patch'])
+    #
+    # if minor % 2:
+    #     patch = 'dev' + patch
+    #
+    # fin_ver = '%d.%d.%s' % (
+    #     major,
+    #     minor,
+    #     patch,
+    # )
 
-    if minor % 2:
-        patch = 'dev' + patch
-
-    fin_ver = '%d.%d.%s' % (
-        major,
-        minor,
-        patch,
-    )
-
-    return fin_ver
+    return sem_ver
 
 
 def get_install_requires() -> str:

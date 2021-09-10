@@ -16,7 +16,8 @@ def load_register(core):
     core.msg_register     = msg_register
     core.run              = run
 
-async def auto_login(self, hotReload=False, statusStorageDir='itchat.pkl',
+async def auto_login(self, EventScanPayload=None,ScanStatus=None,event_stream=None,
+        hotReload=True, statusStorageDir='itchat.pkl',
         enableCmdQR=False, picDir=None, qrCallback=None,
         loginCallback=None, exitCallback=None):
     if not test_connect():
@@ -28,14 +29,14 @@ async def auto_login(self, hotReload=False, statusStorageDir='itchat.pkl',
         if await self.load_login_status(statusStorageDir,
                 loginCallback=loginCallback, exitCallback=exitCallback):
             return
-        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback,
+        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback, EventScanPayload=EventScanPayload, ScanStatus=ScanStatus, event_stream=event_stream,
             loginCallback=loginCallback, exitCallback=exitCallback)
         await self.dump_login_status(statusStorageDir)
     else:
-        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback,
+        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback, EventScanPayload=EventScanPayload, ScanStatus=ScanStatus, event_stream=event_stream,
             loginCallback=loginCallback, exitCallback=exitCallback)
 
-def configured_reply(self):
+async def configured_reply(self, event_stream, payload):
     ''' determine the type of message and reply if its method is defined
         however, I use a strange way to determine whether a msg is from massive platform
         I haven't found a better solution here
@@ -44,6 +45,8 @@ def configured_reply(self):
     '''
     try:
         msg = self.msgList.get(timeout=1)
+        print(msg)
+        event_stream.emit('message', payload(message_id=msg.text))
     except Queue.Empty:
         pass
     else:
@@ -53,16 +56,13 @@ def configured_reply(self):
             replyFn = self.functionDict['MpChat'].get(msg['Type'])
         elif isinstance(msg['User'], templates.Chatroom):
             replyFn = self.functionDict['GroupChat'].get(msg['Type'])
-        print(msg)
-        print(replyFn)
         if replyFn is None:
             r = None
         else:
             try:
-                r = replyFn(msg)
-                print(replyFn)
+                r = await replyFn(msg)
                 if r is not None:
-                    self.send(r, msg.get('FromUserName'))
+                    await self.send(r, msg.get('FromUserName'))
             except:
                 logger.warning(traceback.format_exc())
 
@@ -71,7 +71,7 @@ def msg_register(self, msgType, isFriendChat=False, isGroupChat=False, isMpChat=
         return a specific decorator based on information given '''
     if not (isinstance(msgType, list) or isinstance(msgType, tuple)):
         msgType = [msgType]
-    async def _msg_register(fn):
+    def _msg_register(fn):
         for _msgType in msgType:
             if isFriendChat:
                 self.functionDict['FriendChat'][_msgType] = fn
@@ -91,7 +91,7 @@ async def run(self, debug=False, blockThread=True):
     async def reply_fn():
         try:
             while self.alive:
-                self.configured_reply()
+                await self.configured_reply()
         except KeyboardInterrupt:
             if self.useHotReload:
                 await self.dump_login_status()

@@ -1,6 +1,7 @@
+pyppeteer
+httplib
 pyee~=8.1.0
 requests~=2.25.1
-
 PyQRCode~=1.2.1
 dataclasses~=0.6
 grpclib~=0.4.1
