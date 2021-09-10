@@ -130,5 +130,5 @@ dmypy.json
 .pytype/
 .idea/
 
-tests
+test
 logs
