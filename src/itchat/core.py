@@ -1,7 +1,11 @@
 import requests
-
+import os
 from . import storage
 from .components import load_components
+
+from dataclasses import dataclass
+from dataclasses_json import dataclass_json
+
 
 class Core(object):
     def __init__(self):
@@ -27,6 +31,14 @@ class Core(object):
         self.functionDict = {'FriendChat': {}, 'GroupChat': {}, 'MpChat': {}}
         self.useHotReload, self.hotReloadDir = False, 'itchat.pkl'
         self.receivingRetryCount = 3
+
+
+    @staticmethod
+    def from_cache():
+        cache_dir = '.wechaty'
+        os.makedirs(cache_dir, exist_ok=True)
+        cache_file = os.path.join(cache_dir, 'session.pkl')
+
     def login(self, enableCmdQR=False, picDir=None, qrCallback=None,
             loginCallback=None, exitCallback=None):
         ''' log in like web wechat does

@@ -25,6 +25,7 @@ import types
 from typing import Optional, List
 
 from grpclib.client import Channel
+
 from pyee import AsyncIOEventEmitter  # type: ignore
 
 from wechaty_puppet.schemas.types import PayloadType  # type: ignore
@@ -71,6 +72,8 @@ from wechaty_puppet.exceptions import (  # type: ignore
 )
 
 from src import itchat
+
+# pylint: disable=E0401
 
 log = get_logger('ItChatPuppet')
 
@@ -330,10 +333,6 @@ class PuppetItChat(Puppet):
                 file.name.endswith('.png') or \
                 file.name.endswith('.gif') or \
                 file.name.endswith('.bmp'):
-            file_path = file.name
-            await file.to_file(file_path=file_path, overwrite=True)
-            response = await self.itchat.send_image(fileDir=file_path, toUserName=conversation_id)
-            return response['MsgID']
         file_path = file.name
         await file.to_file(overwrite=True)
         response = await self.itchat.send_file(fileDir=file_path, toUserName=conversation_id)

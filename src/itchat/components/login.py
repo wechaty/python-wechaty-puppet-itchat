@@ -32,7 +32,6 @@ def load_login(core):
     core.get_msg           = get_msg
     core.logout            = logout
 
-
 async def login(self, enableCmdQR=False, picDir=None, qrCallback=None, EventScanPayload=None,ScanStatus=None,event_stream=None,
         loginCallback=None, exitCallback=None):
     if self.alive or self.isLogging:
@@ -43,7 +42,6 @@ async def login(self, enableCmdQR=False, picDir=None, qrCallback=None, EventScan
     while self.isLogging:
         uuid = await push_login(self)
         if uuid:
-            # qrStorage = io.BytesIO()
             payload = EventScanPayload(
                 status=ScanStatus.Waiting,
                 qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{uuid}"
@@ -51,8 +49,6 @@ async def login(self, enableCmdQR=False, picDir=None, qrCallback=None, EventScan
             event_stream.emit('scan', payload)
         else:
             logger.info('Getting uuid of QR code.')
-            # while not await self.get_QRuuid():
-            #     time.sleep(1)
             self.get_QRuuid()
             payload = EventScanPayload(
                 status=ScanStatus.Waiting,
@@ -60,37 +56,57 @@ async def login(self, enableCmdQR=False, picDir=None, qrCallback=None, EventScan
             )
             print(f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}")
             event_stream.emit('scan', payload)
-            print('bbb')
-            # logger.info('Downloading QR code.')
-            # qrStorage = await self.get_QR(enableCmdQR=enableCmdQR,
-            #     picDir=picDir, qrCallback=qrCallback)
             # logger.info('Please scan the QR code to log in.')
         isLoggedIn = False
         while not isLoggedIn:
             status = await self.check_login()
-            print(status)
             # if hasattr(qrCallback, '__call__'):
-            #     await qrCallback(uuid=self.uuid, status=status, qrcode=qrStorage.getvalue())
+                # await qrCallback(uuid=self.uuid, status=status, qrcode=self.qrStorage.getvalue())
             if status == '200':
                 isLoggedIn = True
+                payload = EventScanPayload(
+                    status=ScanStatus.Scanned,
+                    qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}"
+                )
+                event_stream.emit('scan', payload)
             elif status == '201':
                 if isLoggedIn is not None:
                     logger.info('Please press confirm on your phone.')
                     isLoggedIn = None
+                    payload = EventScanPayload(
+                        status=ScanStatus.Waiting,
+                        qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}"
+                    )
+                    event_stream.emit('scan', payload)
             elif status != '408':
+                payload = EventScanPayload(
+                    status=ScanStatus.Cancel,
+                    qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}"
+                )
+                event_stream.emit('scan', payload)
                 break
         if isLoggedIn:
+            payload = EventScanPayload(
+                status=ScanStatus.Confirmed,
+                qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}"
+            )
+            event_stream.emit('scan', payload)
             break
         elif self.isLogging:
             logger.info('Log in time out, reloading QR code.')
+            payload = EventScanPayload(
+                status=ScanStatus.Timeout,
+                qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}"
+            )
+            event_stream.emit('scan', payload)
     else:
-        return # log in process is stopped by user
+        return
     logger.info('Loading the contact, this may take a little while.')
     await self.web_init()
     await self.show_mobile_login()
     self.get_contact(True)
     if hasattr(loginCallback, '__call__'):
-        r = await loginCallback()
+        r = await loginCallback(self.storageClass.userName)
     else:
         utils.clear_screen()
         if os.path.exists(picDir or config.DEFAULT_QR):
@@ -312,7 +328,7 @@ async def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
                     time.sleep(1)
         self.logout()
         if hasattr(exitCallback, '__call__'):
-            exitCallback()
+            exitCallback(self.storageClass.userName)
         else:
             logger.info('LOG OUT!')
     if getReceivingFnOnly:

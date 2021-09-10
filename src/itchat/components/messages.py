@@ -279,7 +279,7 @@ async def send_raw_msg(self, msgType, content, toUserName):
 
 async def send_msg(self, msg='Test Message', toUserName=None):
     logger.debug('Request to send a text message to %s: %s' % (toUserName, msg))
-    r = self.send_raw_msg(1, msg, toUserName)
+    r = await self.send_raw_msg(1, msg, toUserName)
     return r
 
 def _prepare_file(fileDir, file_=None):
@@ -303,7 +303,7 @@ def _prepare_file(fileDir, file_=None):
     fileDict['file_'] = io.BytesIO(file_)
     return fileDict
 
-async def upload_file(self, fileDir, isPicture=False, isVideo=False,
+def upload_file(self, fileDir, isPicture=False, isVideo=False,
         toUserName='filehelper', file_=None, preparedFile=None):
     logger.debug('Request to upload a %s: %s' % (
         'picture' if isPicture else 'video' if isVideo else 'file', fileDir))
@@ -337,7 +337,7 @@ async def upload_file(self, fileDir, isPicture=False, isVideo=False,
         return ReturnValue(r)
     return ReturnValue(rawResponse=r)
 
-async def upload_chunk_file(core, fileDir, fileSymbol, fileSize,
+def upload_chunk_file(core, fileDir, fileSymbol, fileSize,
         file_, chunk, chunks, uploadMediaRequest):
     url = core.loginInfo.get('fileUrl', core.loginInfo['url']) + \
         '/webwxuploadmedia?f=json'
@@ -509,7 +509,7 @@ async def send(self, msg, toUserName=None, mediaId=None):
         else:
             r = self.send_video(msg[5:], toUserName, mediaId)
     else:
-        r = self.send_msg(msg, toUserName)
+        r = await self.send_msg(msg, toUserName)
     return r
 
 async def revoke(self, msgId, toUserName, localId=None):
