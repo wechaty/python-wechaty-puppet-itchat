@@ -7,5 +7,6 @@ pylint-quotes
 pytest
 pytype
 semver
+wechaty_grpc
 wechaty-puppet~=0.3dev2
 pre-commit
