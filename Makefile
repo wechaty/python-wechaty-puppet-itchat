@@ -48,7 +48,7 @@ flake8:
 
 .PHONY: mypy
 mypy:
-	MYPYPATH=stubs/ mypy --install-types \
+	MYPYPATH=stubs/ mypy \
 		$(SOURCE_GLOB)
 
 .PHONE: pytype
