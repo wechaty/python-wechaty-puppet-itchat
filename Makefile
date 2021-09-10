@@ -55,7 +55,7 @@ mypy:
 pytype:
 	pytype -V 3.7 \
 		--disable=import-error,pyi-error \
-		src/wechaty_puppet_itchat/
+		src/wechaty_puppet_itchat/puppet.py
 
 .PHONY: uninstall-git-hook
 uninstall-git-hook:
