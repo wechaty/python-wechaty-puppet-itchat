@@ -20,21 +20,12 @@ limitations under the License.
 """
 from __future__ import annotations
 
-import json
-import re
-import os
 import asyncio
 import types
 from typing import Optional, List
-from functools import reduce
-from dataclasses import asdict
-import xml.dom.minidom  # type: ignore
 
-from src import itchat
-
-# pylint: disable=E0401
 from grpclib.client import Channel
-# pylint: disable=E0401
+
 from pyee import AsyncIOEventEmitter  # type: ignore
 
 from wechaty_puppet.schemas.types import PayloadType  # type: ignore
@@ -43,26 +34,26 @@ from wechaty_puppet import (  # type: ignore
     EventScanPayload,
     ScanStatus,
 
-    EventReadyPayload,
-
-    EventDongPayload,
-    EventRoomTopicPayload,
-    EventRoomLeavePayload,
-    EventRoomJoinPayload,
-    EventRoomInvitePayload,
+    # EventReadyPayload,
+    #
+    # EventDongPayload,
+    # EventRoomTopicPayload,
+    # EventRoomLeavePayload,
+    # EventRoomJoinPayload,
+    # EventRoomInvitePayload,
 
     EventMessagePayload,
     EventLogoutPayload,
     EventLoginPayload,
-    EventFriendshipPayload,
-    EventHeartbeatPayload,
-    EventErrorPayload,
+    # EventFriendshipPayload,
+    # EventHeartbeatPayload,
+    # EventErrorPayload,
     FileBox, RoomMemberPayload, RoomPayload, RoomInvitationPayload,
     RoomQueryFilter, FriendshipPayload, ContactPayload, MessagePayload,
     MessageQueryFilter,
 
     ImageType,
-    EventType,
+    # EventType,
     MessageType,
     Puppet,
     PuppetOptions,
@@ -73,12 +64,16 @@ from wechaty_puppet import (  # type: ignore
 )
 
 from wechaty_puppet.exceptions import (  # type: ignore
-    WechatyPuppetConfigurationError,
-    WechatyPuppetError,
-    WechatyPuppetGrpcError,
+    # WechatyPuppetConfigurationError,
+    # WechatyPuppetError,
+    # WechatyPuppetGrpcError,
     WechatyPuppetOperationError,
-    WechatyPuppetPayloadError
+    # WechatyPuppetPayloadError
 )
+
+from src import itchat
+
+# pylint: disable=E0401
 
 log = get_logger('ItChatPuppet')
 
@@ -291,9 +286,10 @@ class PuppetItChat(Puppet):
         # response = await self.puppet_stub.tag_contact_list(
         #     contact_id=contact_id)
         # return response.ids
+        return []
 
     async def message_send_text(self, conversation_id: str, message: str,
-                                mention_ids: List[str] = None) -> str:
+                                mention_ids: Optional[List[str]] = None) -> str:
         """
         send text message
         :param conversation_id:
@@ -322,6 +318,7 @@ class PuppetItChat(Puppet):
         #     contact_id=contact_id
         # )
         # return response.id
+        return ''
 
     async def message_send_file(self, conversation_id: str,
                                 file: FileBox) -> str:
@@ -331,16 +328,19 @@ class PuppetItChat(Puppet):
         :param file:
         :return:
         """
-        if file.name.endswith('.jpg') or file.name.endswith('.jpeg') or file.name.endswith('.png') or file.name.endswith('.gif') or file.name.endswith('.bmp'):
+        if file.name.endswith('.jpg') or \
+                file.name.endswith('.jpeg') or \
+                file.name.endswith('.png') or \
+                file.name.endswith('.gif') or \
+                file.name.endswith('.bmp'):
             file_path = file.name
             await file.to_file(file_path=file_path, overwrite=True)
             response = await self.itchat.send_image(fileDir=file_path, toUserName=conversation_id)
             return response['MsgID']
-        else:
-            file_path = file.name
-            await file.to_file(overwrite=True)
-            response = await self.itchat.send_file(fileDir=file_path, toUserName=conversation_id)
-            return response['MsgID']
+        file_path = file.name
+        await file.to_file(overwrite=True)
+        response = await self.itchat.send_file(fileDir=file_path, toUserName=conversation_id)
+        return response['MsgID']
 
     async def message_send_url(self, conversation_id: str, url: str) -> str:
         """
@@ -355,6 +355,7 @@ class PuppetItChat(Puppet):
         #     url_link=url
         # )
         # return response.id
+        return ''
 
     async def message_send_mini_program(self, conversation_id: str,
                                         mini_program: MiniProgramPayload
@@ -372,6 +373,7 @@ class PuppetItChat(Puppet):
         #     mini_program=json.dumps(asdict(mini_program))
         # )
         # return response.id
+        return ''
 
     async def message_search(self, query: Optional[MessageQueryFilter] = None
                              ) -> List[str]:
@@ -380,7 +382,7 @@ class PuppetItChat(Puppet):
         :param query:
         :return:
         """
-        # return []
+        return []
 
     async def message_recall(self, message_id: str) -> bool:
         """
@@ -472,6 +474,7 @@ class PuppetItChat(Puppet):
         """
         # response = await self.puppet_stub.message_contact(id=message_id)
         # return response.id
+        return ''
 
     async def message_url(self, message_id: str) -> UrlLinkPayload:
         """
@@ -521,6 +524,7 @@ class PuppetItChat(Puppet):
         # if response.alias is None and alias is None:
         #     raise WechatyPuppetGrpcError('can"t get contact<%s> alias' % contact_id)
         # return response.alias
+        return ''
 
     async def contact_payload_dirty(self, contact_id: str):
         """
@@ -558,6 +562,7 @@ class PuppetItChat(Puppet):
         # response = await self.puppet_stub.tag_contact_list(
         #     contact_id=contact_id)
         # return response.ids
+        return []
 
     def self_id(self) -> str:
         """
@@ -625,7 +630,7 @@ class PuppetItChat(Puppet):
         """
         # await self.puppet_stub.friendship_accept(id=friendship_id)
 
-    async def room_create(self, contact_ids: List[str], topic: str = None
+    async def room_create(self, contact_ids: Optional[List[str]], topic: Optional[str] = None
                           ) -> str:
         """
         create room
@@ -638,6 +643,7 @@ class PuppetItChat(Puppet):
         #     topic=topic
         # )
         # return response.id
+        return ''
 
     async def room_search(self, query: RoomQueryFilter = None) -> List[str]:
         """
@@ -648,6 +654,7 @@ class PuppetItChat(Puppet):
         """
         # room_list_response = await self.puppet_stub.room_list()
         # return room_list_response.ids
+        return []
 
     async def room_invitation_payload(self,
                                       room_invitation_id: str,
@@ -677,6 +684,7 @@ class PuppetItChat(Puppet):
 
         # response = await self.puppet_stub.contact_self_qr_code()
         # return response.qrcode
+        return ''
 
     async def contact_self_name(self, name: str):
         """
@@ -739,6 +747,7 @@ class PuppetItChat(Puppet):
         """
         # response = await self.puppet_stub.room_member_list(id=room_id)
         # return response.member_ids
+        return []
 
     async def room_add(self, room_id: str, contact_id: str):
         """
@@ -776,7 +785,7 @@ class PuppetItChat(Puppet):
         # await self.puppet_stub.room_topic(id=room_id, topic=new_topic)
 
     async def room_announce(self, room_id: str,
-                            announcement: str = None) -> str:
+                            announcement: Optional[str] = None) -> str:
         """
         get/set announce
         :param room_id:
@@ -790,7 +799,7 @@ class PuppetItChat(Puppet):
         #     return room_announce_response.text
         # if announcement is not None and room_announce_response.text is None:
         #     return announcement
-        # return ''
+        return ''
 
     async def room_qr_code(self, room_id: str) -> str:
         """
@@ -803,6 +812,7 @@ class PuppetItChat(Puppet):
         # room_qr_code_response = await \
         #     self.puppet_stub.room_qr_code()
         # return room_qr_code_response.qrcode
+        return ''
 
     async def room_member_payload(self, room_id: str,
                                   contact_id: str) -> RoomMemberPayload:
@@ -908,7 +918,7 @@ class PuppetItChat(Puppet):
         async def on_scan(uuid: str):
             payload = EventScanPayload(
                 status=ScanStatus.Waiting,
-                qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{uuid}"
+                qrcode=f'https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{uuid}'
             )
             self._event_stream.emit('scan', payload)
 
