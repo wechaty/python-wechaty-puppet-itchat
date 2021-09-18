@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import asyncio
 import types
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from grpclib.client import Channel
 
@@ -72,6 +72,20 @@ from wechaty_puppet.exceptions import (  # type: ignore
 )
 
 from src import itchat
+from src.itchat.content import (  # type: ignore
+    TEXT,
+    MAP,
+    CARD,
+    NOTE,
+    SHARING,
+    PICTURE,
+    RECORDING,
+    VOICE,
+    ATTACHMENT,
+    VIDEO,
+    FRIENDS
+    # SYSTEM
+)
 
 # pylint: disable=E0401
 
@@ -170,6 +184,8 @@ class PuppetItChat(Puppet):
         self.puppet_options = None
         self.puppet = self
         self.itchat = itchat
+
+        self.message_container: Dict[str, dict] = {}
 
     async def room_list(self) -> List[str]:
         """
@@ -399,9 +415,35 @@ class PuppetItChat(Puppet):
         :param message_id:
         :return:
         """
-        # response = await self.puppet_stub.message_payload(id=message_id)
-        #
-        # return _map_message_type(response)
+        if message_id not in self.message_container:
+            raise ValueError('message not found')
+        msg = self.message_container[message_id]
+        msg_type = msg['Type']
+
+        if msg_type == 'Text':
+            type_ = MessageType.MESSAGE_TYPE_TEXT
+        elif msg_type == 'Map':
+            type_ = MessageType.MESSAGE_TYPE_LOCATION
+        elif msg_type == 'Sharing':
+            type_ = MessageType.MESSAGE_TYPE_URL
+        elif msg_type == 'Picture':
+            type_ = MessageType.MESSAGE_TYPE_IMAGE
+        elif msg_type == 'Video':
+            type_ = MessageType.MESSAGE_TYPE_VIDEO
+        elif msg_type in ['Recording', 'Attachment']:
+            type_ = MessageType.MESSAGE_TYPE_ATTACHMENT
+        else:
+            type_ = MessageType.MESSAGE_TYPE_UNSPECIFIED
+
+        message_payload = MessagePayload(id=msg['MsgId'],
+                                         type=type_,
+                                         from_id=msg['FromUserName'],
+                                         filename=msg['FileName'],
+                                         text=msg['Text'],
+                                         timestamp=msg['CreateTime'],
+                                         to_id=msg['ToUserName'])
+
+        return message_payload
 
     async def message_forward(self, to_id: str, message_id: str):
         """
@@ -447,10 +489,14 @@ class PuppetItChat(Puppet):
         #     file_chunk_data.append(stream.file_box_chunk.data)
         #     if not name and stream.file_box_chunk.name:
         #         name = stream.file_box_chunk.name
-        #
-        # file_stream = reduce(lambda pre, cu: pre + cu, file_chunk_data)
-        # file_box = FileBox.from_stream(file_stream, name=name)
-        # return file_box
+
+        if message_id not in self.message_container:
+            raise ValueError('message not found')
+        msg = self.message_container[message_id]
+        get_pic = await msg['Text']
+        await get_pic(msg['fileName'])
+        file_box = FileBox.from_file(path=msg['fileName'], name=msg['fileName'])
+        return file_box
 
     async def message_emoticon(self, message: str) -> FileBox:
         """
@@ -458,13 +504,13 @@ class PuppetItChat(Puppet):
         :param message:
         :return:
         """
-        # DOMTree = xml.dom.minidom.parseString(message)
-        # collection = DOMTree.documentElement
-        # file_box = FileBox.from_url(
-        #     url=collection.getElementsByTagName('emoji')[0].getAttribute('cdnurl'),
-        #     name=collection.getElementsByTagName('emoji')[0].getAttribute('md5') + '.gif'
-        # )
-        # return file_box
+        if message not in self.message_container:
+            raise ValueError('message not found')
+        msg = self.message_container[message]
+        get_pic = await msg['Text']
+        await get_pic(msg['fileName'])
+        file_box = FileBox.from_file(path=msg['fileName'], name=msg['fileName'])
+        return file_box
 
     async def message_contact(self, message_id: str) -> str:
         """
@@ -482,15 +528,15 @@ class PuppetItChat(Puppet):
         :param message_id:
         :return:
         """
-        # response = await self.puppet_stub.message_url(id=message_id)
-        # # parse url_link data from response
-        # payload_data = json.loads(response.url_link)
-        # return UrlLinkPayload(
-        #     url=payload_data.get('url', ''),
-        #     title=payload_data.get('title', ''),
-        #     description=payload_data.get('description', ''),
-        #     thumbnailUrl=payload_data.get('thumbnailUrl', ''),
-        # )
+        if message_id not in self.message_container:
+            raise ValueError('message not found')
+        msg = self.message_container[message_id]
+        return UrlLinkPayload(
+            url=msg['Url'],
+            title=msg['FileName'],
+            description='',
+            thumbnailUrl='',
+        )
 
     async def message_mini_program(self, message_id: str) -> MiniProgramPayload:
         """
@@ -607,6 +653,8 @@ class PuppetItChat(Puppet):
         #     contact_id=contact_id,
         #     hello=hello
         # )
+        await self.itchat.Core.add_friend(self.itchat.Core, userName=contact_id,
+                                          status=2, verifyContent=hello)
 
     async def friendship_payload(self, friendship_id: str,
                                  payload: Optional[FriendshipPayload] = None
@@ -620,7 +668,9 @@ class PuppetItChat(Puppet):
         # response = await self.puppet_stub.friendship_payload(
         #     id=friendship_id, payload=json.dumps(payload)
         # )
-        # return response
+        if payload:
+            payload.id = friendship_id
+        return payload
 
     async def friendship_accept(self, friendship_id: str):
         """
@@ -628,7 +678,7 @@ class PuppetItChat(Puppet):
         :param friendship_id:
         :return:
         """
-        # await self.puppet_stub.friendship_accept(id=friendship_id)
+        await self.itchat.Core.add_friend(self.itchat.Core, userName=friendship_id, status=3)
 
     async def room_create(self, contact_ids: Optional[List[str]], topic: Optional[str] = None
                           ) -> str:
@@ -918,21 +968,24 @@ class PuppetItChat(Puppet):
         async def on_scan(uuid: str):
             payload = EventScanPayload(
                 status=ScanStatus.Waiting,
-                qrcode=f'https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{uuid}'
+                qrcode=f'https://login.weixin.qq.com/l/{uuid}'
             )
             self._event_stream.emit('scan', payload)
+            await asyncio.sleep(0.1)
 
         async def on_logined(userName: str):
             event_login_payload = EventLoginPayload(contact_id=userName)
             self.login_user_id = userName
             self._event_stream.emit('login', event_login_payload)
+            await asyncio.sleep(0.1)
 
         async def on_logout(userName: str):
             payload = EventLogoutPayload(contact_id=userName, data='')
             self.login_user_id = None
             self._event_stream.emit('logout', payload)
+            await asyncio.sleep(0.1)
 
-        await self.itchat.login(
+        await self.itchat.auto_login(
             enableCmdQR=True,
             qrCallback=on_scan,
             EventScanPayload=EventScanPayload,
@@ -942,9 +995,10 @@ class PuppetItChat(Puppet):
             exitCallback=on_logout
         )
 
-        @self.itchat.msg_register(self.itchat.content.TEXT)
-        async def on_message(msg):
-            log.info('receive message info <%s>', msg.text)
+        @self.itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
+        async def on_message_person_text(msg):
+            self.message_container[msg['MsgId']] = msg
+            log.info(f'receive message info <{msg.text}>')
             event_message_payload = EventMessagePayload(
                 message_id=msg['MsgId'],
                 type=msg['Type'],
@@ -954,34 +1008,74 @@ class PuppetItChat(Puppet):
                 timestamp=msg['CreateTime'],
                 to_id=msg['ToUserName']
             )
+
             self._event_stream.emit('message', event_message_payload)
+            await asyncio.sleep(0.1)
 
-            # test send text message
-            await self.message_send_text(conversation_id='filehelper', message='dong')
+        @self.itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isGroupChat=True)
+        async def on_message_group_text(msg):
+            self.message_container[msg['MsgId']] = msg
+            log.info(f'receive message info <{msg.text}>')
+            event_message_payload = EventMessagePayload(
+                message_id=msg['MsgId'],
+                type=msg['Type'],
+                from_id=msg['FromUserName'],
+                filename=msg['FileName'],
+                text=msg['Text'],
+                timestamp=msg['CreateTime'],
+                to_id=msg['ToUserName']
+            )
 
-            # test send image message
-            file_box = FileBox.from_url(
-                'https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/'
-                'u=1116676390,2305043183&fm=26&gp=0.jpg',
-                name='ding-dong.jpg')
-            await self.message_send_file(conversation_id='filehelper', file=file_box)
+            self._event_stream.emit('message', event_message_payload)
+            await asyncio.sleep(0.1)
 
-            # test get friends
-            cl = await self.contact_list()
-            print(cl)
+        @self.itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO])
+        async def on_message_person_file(msg):
+            self.message_container[msg['MsgId']] = msg
+            log.info(f'receive file message info <{msg.FileName}>')
+            event_message_payload = EventMessagePayload(
+                message_id=msg['MsgId'],
+                type=msg['Type'],
+                from_id=msg['FromUserName'],
+                filename=msg['FileName'],
+                text='',
+                timestamp=msg['CreateTime'],
+                to_id=msg['ToUserName']
+            )
 
-            # test get rooms
-            rl = await self.room_list()
-            print(rl)
+            self._event_stream.emit('message', event_message_payload)
+            await asyncio.sleep(0.1)
 
-            if msg['Content'] == 'ding':
-                return 'dong'
+        @self.itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO, VOICE], isGroupChat=True)
+        async def on_message_group_file(msg):
+            self.message_container[msg['MsgId']] = msg
+            log.info(f'receive file message info <{msg.FileName}>')
+            event_message_payload = EventMessagePayload(
+                message_id=msg['MsgId'],
+                type=msg['Type'],
+                from_id=msg['FromUserName'],
+                filename=msg['FileName'],
+                text='',
+                timestamp=msg['CreateTime'],
+                to_id=msg['ToUserName']
+            )
+
+            self._event_stream.emit('message', event_message_payload)
+            await asyncio.sleep(0.1)
+
+        @itchat.msg_register(FRIENDS)
+        def add_friend(msg):
+            msg.user.verify()
+            msg.user.send('Nice to meet you!')
+
+        message_container = self.message_container.copy()
 
         async def run(self, event_stream, payload):
             async def reply_fn():
                 try:
                     while self.alive:
-                        await self.configured_reply(event_stream=event_stream, payload=payload)
+                        await self.configured_reply(event_stream=event_stream, payload=payload,
+                                                    message_container=message_container)
                 except KeyboardInterrupt:
                     if self.useHotReload:
                         await self.dump_login_status()

@@ -36,7 +36,7 @@ async def auto_login(self, EventScanPayload=None,ScanStatus=None,event_stream=No
         await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback, EventScanPayload=EventScanPayload, ScanStatus=ScanStatus, event_stream=event_stream,
             loginCallback=loginCallback, exitCallback=exitCallback)
 
-async def configured_reply(self, event_stream, payload):
+async def configured_reply(self, event_stream, payload, message_container):
     ''' determine the type of message and reply if its method is defined
         however, I use a strange way to determine whether a msg is from massive platform
         I haven't found a better solution here
@@ -45,8 +45,7 @@ async def configured_reply(self, event_stream, payload):
     '''
     try:
         msg = self.msgList.get(timeout=1)
-        print(msg)
-        event_stream.emit('message', payload(message_id=msg.text))
+        message_container[msg['MsgId']] = msg
     except Queue.Empty:
         pass
     else:

@@ -24,7 +24,18 @@ asyncio.run(bot.start())
 
 ## History
 
-### v0.0.1 (July 1, 2021)
+### v0.0.2 (September 18, 2021)
+
+1. Fix Bugs
+2. Add Receive Message
+
+### v0.0.1 (September 10, 2021)
+
+1. Add CI/CD
+2. Add Scan/Login
+3. Add Send Message
+
+### v0.0.0 (July 1, 2021)
 
 1. Init Code
 

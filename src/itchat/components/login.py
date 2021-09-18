@@ -1,3 +1,4 @@
+import asyncio
 import os, time, re, io
 import threading
 import json
@@ -44,61 +45,69 @@ async def login(self, enableCmdQR=False, picDir=None, qrCallback=None, EventScan
         if uuid:
             payload = EventScanPayload(
                 status=ScanStatus.Waiting,
-                qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{uuid}"
+                qrcode=f"qrcode/https://login.weixin.qq.com/l/{uuid}"
             )
             event_stream.emit('scan', payload)
+            await asyncio.sleep(0.1)
         else:
             logger.info('Getting uuid of QR code.')
             self.get_QRuuid()
             payload = EventScanPayload(
                 status=ScanStatus.Waiting,
-                qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}"
+                qrcode=f"https://login.weixin.qq.com/l/{self.uuid}"
             )
             print(f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}")
             event_stream.emit('scan', payload)
+            await asyncio.sleep(0.1)
             # logger.info('Please scan the QR code to log in.')
         isLoggedIn = False
         while not isLoggedIn:
             status = await self.check_login()
+            print(status)
             # if hasattr(qrCallback, '__call__'):
                 # await qrCallback(uuid=self.uuid, status=status, qrcode=self.qrStorage.getvalue())
             if status == '200':
                 isLoggedIn = True
                 payload = EventScanPayload(
                     status=ScanStatus.Scanned,
-                    qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}"
+                    qrcode=f"https://login.weixin.qq.com/l/{self.uuid}"
                 )
                 event_stream.emit('scan', payload)
+                await asyncio.sleep(0.1)
             elif status == '201':
                 if isLoggedIn is not None:
                     logger.info('Please press confirm on your phone.')
                     isLoggedIn = None
                     payload = EventScanPayload(
                         status=ScanStatus.Waiting,
-                        qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}"
+                        qrcode=f"https://login.weixin.qq.com/l/{self.uuid}"
                     )
                     event_stream.emit('scan', payload)
+                    await asyncio.sleep(0.1)
             elif status != '408':
                 payload = EventScanPayload(
                     status=ScanStatus.Cancel,
-                    qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}"
+                    qrcode=f"https://login.weixin.qq.com/l/{self.uuid}"
                 )
                 event_stream.emit('scan', payload)
+                await asyncio.sleep(0.1)
                 break
         if isLoggedIn:
             payload = EventScanPayload(
                 status=ScanStatus.Confirmed,
-                qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}"
+                qrcode=f"https://login.weixin.qq.com/l/{self.uuid}"
             )
             event_stream.emit('scan', payload)
+            await asyncio.sleep(0.1)
             break
         elif self.isLogging:
             logger.info('Log in time out, reloading QR code.')
             payload = EventScanPayload(
                 status=ScanStatus.Timeout,
-                qrcode=f"https://wechaty.js.org/qrcode/https://login.weixin.qq.com/l/{self.uuid}"
+                qrcode=f"https://login.weixin.qq.com/l/{self.uuid}"
             )
             event_stream.emit('scan', payload)
+            await asyncio.sleep(0.1)
     else:
         return
     logger.info('Loading the contact, this may take a little while.')
