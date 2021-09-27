@@ -63,7 +63,6 @@ async def login(self, enableCmdQR=False, picDir=None, qrCallback=None, EventScan
         isLoggedIn = False
         while not isLoggedIn:
             status = await self.check_login()
-            print(status)
             # if hasattr(qrCallback, '__call__'):
                 # await qrCallback(uuid=self.uuid, status=status, qrcode=self.qrStorage.getvalue())
             if status == '200':
