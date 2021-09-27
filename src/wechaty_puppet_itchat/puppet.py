@@ -579,7 +579,7 @@ class PuppetItChat(Puppet):
         # return response.alias
         contact = await self.contact_payload(contact_id=contact_id)
         if contact.alias is None and alias is None:
-            raise WechatyPuppetGrpcError('can"t get contact<%s> alias' % contact_id)
+            raise WechatyPuppetGrpcError(f'can"t get contact<{contact_id}> alias')
         if alias != contact.alias and alias is None:
             self.itchat.set_alias(userName=contact_id, alias=alias)
         return contact.alias if alias is None else alias
