@@ -71,8 +71,8 @@ from wechaty_puppet.exceptions import (  # type: ignore
     # WechatyPuppetPayloadError
 )
 
-from src import itchat
-from src.itchat.content import (  # type: ignore
+import itchat_wechaty
+from itchat_wechaty.content import (  # type: ignore
     TEXT,
     MAP,
     CARD,
@@ -183,7 +183,7 @@ class PuppetItChat(Puppet):
         self.login_user_id: Optional[str] = None
         self.puppet_options = None
         self.puppet = self
-        self.itchat = itchat
+        self.itchat = itchat_wechaty
 
         self.message_container: Dict[str, dict] = {}
 

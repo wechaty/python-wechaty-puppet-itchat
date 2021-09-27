@@ -24,6 +24,10 @@ asyncio.run(bot.start())
 
 ## History
 
+### v0.0.3 (September 27, 2021)
+
+1. Rename `itchat` to `itchat_wechaty`
+
 ### v0.0.2 (September 18, 2021)
 
 1. Fix Bugs
