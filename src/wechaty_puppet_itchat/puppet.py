@@ -71,7 +71,7 @@ from wechaty_puppet.exceptions import (  # type: ignore
     # WechatyPuppetPayloadError
 )
 
-import itchat_wechaty
+import itchat_wechaty  # type: ignore
 from itchat_wechaty.content import (  # type: ignore
     TEXT,
     MAP,
@@ -653,7 +653,7 @@ class PuppetItChat(Puppet):
         #     contact_id=contact_id,
         #     hello=hello
         # )
-        await self.itchat.Core.add_friend(self.itchat.Core, userName=contact_id,
+        await self.itchat.Core.add_friend(self.itchat.Core, userName=contact_id,  # type: ignore
                                           status=2, verifyContent=hello)
 
     async def friendship_payload(self, friendship_id: str,
@@ -678,7 +678,8 @@ class PuppetItChat(Puppet):
         :param friendship_id:
         :return:
         """
-        await self.itchat.Core.add_friend(self.itchat.Core, userName=friendship_id, status=3)
+        await self.itchat.Core.add_friend(self.itchat.Core,  # type: ignore
+                                          userName=friendship_id, status=3)
 
     async def room_create(self, contact_ids: Optional[List[str]], topic: Optional[str] = None
                           ) -> str:
@@ -1063,7 +1064,7 @@ class PuppetItChat(Puppet):
             self._event_stream.emit('message', event_message_payload)
             await asyncio.sleep(0.1)
 
-        @itchat.msg_register(FRIENDS)
+        @itchat_wechaty.msg_register(FRIENDS)
         def add_friend(msg):
             msg.user.verify()
             msg.user.send('Nice to meet you!')

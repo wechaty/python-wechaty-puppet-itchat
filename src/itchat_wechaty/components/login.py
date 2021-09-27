@@ -10,7 +10,7 @@ try:
 except ImportError:
     from http.client import BadStatusLine
 
-import requests
+import requests  # type: ignore
 from pyqrcode import QRCode
 
 from .. import config, utils
