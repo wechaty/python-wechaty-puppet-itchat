@@ -1,6 +1,3 @@
-import sys
-#添加路径，需要修改为自己的文件夹
-sys.path.append(r'd:/github/python-wechaty-puppet-itchat/')
 import asyncio
 import uvicorn
 from fastapi import Depends, FastAPI
@@ -47,14 +44,14 @@ async def send_msg(item:Item,bot=Depends(bot)):
     except Exception as e:
         log.exception(e)
         return 404
-async def send_report(bot,str,str2,str3):
+async def send_report(bot,msg_type,name,msg):
     log.info('Bot_' + 'send_report()')
     try:
-        if str == 'group_msg':
+        if msg_type == 'group_msg':
             pass
-        elif str == 'private_msg':
-            contact = await bot.Contact.find(query=ContactQueryFilter(name=str2))
-            await contact.say(str3)
+        elif msg_type == 'private_msg':
+            contact = await bot.Contact.find(query=ContactQueryFilter(name=name))
+            await contact.say(msg)
         else:
             return 0
     except Exception as e:
