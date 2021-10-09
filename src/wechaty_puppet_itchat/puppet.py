@@ -217,6 +217,13 @@ class PuppetItChat(Puppet):
         # file_stream = reduce(lambda pre, cu: pre + cu, file_chunk_data)
         # file_box = FileBox.from_stream(file_stream, name=name)
         # return file_box
+        if message_id not in self.message_container:
+            raise ValueError('img message not found')
+        msg = self.message_container[message_id]
+        get_pic = await msg['Text']
+        await get_pic(msg['fileName'])
+        file_box = FileBox.from_file(path=msg['fileName'], name=msg['fileName'])
+        return file_box
 
     def on(self, event_name: str, caller):
         """
@@ -437,14 +444,23 @@ class PuppetItChat(Puppet):
         else:
             type_ = MessageType.MESSAGE_TYPE_UNSPECIFIED
 
-        message_payload = MessagePayload(id=msg['MsgId'],
-                                         type=type_,
-                                         from_id=msg['FromUserName'],
-                                         filename=msg['FileName'],
-                                         text=msg['Text'],
-                                         timestamp=msg['CreateTime'],
-                                         to_id=msg['ToUserName'])
-
+        if '@@' in msg['FromUserName']:
+            message_payload = MessagePayload(id=msg['MsgId'],
+                                             type=type_,
+                                             from_id=msg['ToUserName'],
+                                             room_id=msg['FromUserName'],
+                                             filename=msg['FileName'],
+                                             text=msg['Text'],
+                                             timestamp=msg['CreateTime'],
+                                             to_id=msg['ToUserName'])
+        else:
+            message_payload = MessagePayload(id=msg['MsgId'],
+                                             type=type_,
+                                             from_id=msg['FromUserName'],
+                                             filename=msg['FileName'],
+                                             text=msg['Text'],
+                                             timestamp=msg['CreateTime'],
+                                             to_id=msg['ToUserName'])
         return message_payload
 
     async def message_forward(self, to_id: str, message_id: str):
@@ -493,7 +509,7 @@ class PuppetItChat(Puppet):
         #         name = stream.file_box_chunk.name
 
         if message_id not in self.message_container:
-            raise ValueError('message not found')
+            raise ValueError('file message not found')
         msg = self.message_container[message_id]
         get_pic = await msg['Text']
         await get_pic(msg['fileName'])
@@ -507,7 +523,7 @@ class PuppetItChat(Puppet):
         :return:
         """
         if message not in self.message_container:
-            raise ValueError('message not found')
+            raise ValueError('emoticon message not found')
         msg = self.message_container[message]
         get_pic = await msg['Text']
         await get_pic(msg['fileName'])
@@ -523,7 +539,7 @@ class PuppetItChat(Puppet):
         # response = await self.puppet_stub.message_contact(id=message_id)
         # return response.id
         if message_id not in self.message_container:
-            raise ValueError('message not found')
+            raise ValueError('contact message not found')
         msg = self.message_container[message_id]
         return msg['RecommendInfo']['UserName']
 
@@ -534,7 +550,7 @@ class PuppetItChat(Puppet):
         :return:
         """
         if message_id not in self.message_container:
-            raise ValueError('message not found')
+            raise ValueError('url message not found')
         msg = self.message_container[message_id]
         return UrlLinkPayload(
             url=msg['Url'],
@@ -822,6 +838,17 @@ class PuppetItChat(Puppet):
         """
         # response = await self.puppet_stub.room_payload(id=room_id)
         # return response
+        room_list = self.itchat.get_chatrooms(update=True)
+        for r in room_list:
+            if r['UserName'] == room_id:
+                member_ids = [c['UserName'] for c in r['MemberList']]
+                return RoomPayload(
+                    id=r['UserName'],
+                    topic=r['NickName'],
+                    avatar=r['HeadImgUrl'],
+                    owner_id=r['ChatRoomOwner'],
+                    admin_ids=[r['ChatRoomOwner']],
+                    member_ids=member_ids)
 
     async def room_members(self, room_id: str) -> List[str]:
         """
@@ -1110,12 +1137,13 @@ class PuppetItChat(Puppet):
 
         @itchat.msg_register(FRIENDS)
         def add_friend(msg):
+            self.message_container[msg['MsgId']] = msg
+            log.info(f'receive file message info <{msg.user}>')
             msg.user.verify()
-            msg.user.send('Nice to meet you!')
 
-        @itchat.msg_register(SYSTEM)
-        def handle_system_msg(msg):
-            log.info(f'receive system message info <{msg["Text"]}>')
+        # @itchat.msg_register(SYSTEM)
+        # def handle_system_msg(msg):
+        #     log.info(f'receive system message info <{msg["Text"]}>')
 
         message_container = self.message_container.copy()
 
