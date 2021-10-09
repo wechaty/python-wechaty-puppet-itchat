@@ -83,8 +83,7 @@ from src.itchat.content import (  # type: ignore
     VOICE,
     ATTACHMENT,
     VIDEO,
-    FRIENDS,
-    SYSTEM
+    FRIENDS
 )
 
 # pylint: disable=E0401
