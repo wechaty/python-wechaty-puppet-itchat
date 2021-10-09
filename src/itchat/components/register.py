@@ -45,7 +45,8 @@ async def configured_reply(self, event_stream, payload, message_container):
     '''
     try:
         msg = self.msgList.get(timeout=1)
-        message_container[msg['MsgId']] = msg
+        if 'MsgId' in msg.keys():
+            message_container[msg['MsgId']] = msg
     except Queue.Empty:
         pass
     else:
