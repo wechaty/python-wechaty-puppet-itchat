@@ -11,4 +11,4 @@ def test_version() -> None:
     Unit Test for version file
     """
 
-    assert VERSION == '0.0.3', 'version should be 0.0.3'
+    assert VERSION == '0.0.4', 'version should be 0.0.4'
