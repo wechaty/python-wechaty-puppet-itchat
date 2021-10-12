@@ -2,7 +2,7 @@ import logging, traceback, sys, threading
 try:
     import Queue
 except ImportError:
-    import queue as Queue
+    import queue as Queue  # type: ignore
 
 from ..log import set_logging
 from ..utils import test_connect

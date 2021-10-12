@@ -5,12 +5,12 @@ try:
 except ImportError:
     from html.parser import HTMLParser
 try:
-    from urllib import quote as _quote
+    from urllib import quote as _quote  # type: ignore
     quote = lambda n: _quote(n.encode('utf8', 'replace'))
 except ImportError:
     from urllib.parse import quote
 
-import requests
+import requests  # type: ignore
 
 from . import config
 
@@ -32,14 +32,14 @@ else:
     BLOCK = b
 friendInfoTemplate = {}
 for k in ('UserName', 'City', 'DisplayName', 'PYQuanPin', 'RemarkPYInitial', 'Province',
-        'KeyWord', 'RemarkName', 'PYInitial', 'EncryChatRoomId', 'Alias', 'Signature', 
+        'KeyWord', 'RemarkName', 'PYInitial', 'EncryChatRoomId', 'Alias', 'Signature',
         'NickName', 'RemarkPYQuanPin', 'HeadImgUrl'):
     friendInfoTemplate[k] = ''
 for k in ('UniFriend', 'Sex', 'AppAccountFlag', 'VerifyFlag', 'ChatRoomId', 'HideInputBarFlag',
         'AttrStatus', 'SnsFlag', 'MemberCount', 'OwnerUin', 'ContactFlag', 'Uin',
         'StarFriend', 'Statues'):
-    friendInfoTemplate[k] = 0
-friendInfoTemplate['MemberList'] = []
+    friendInfoTemplate[k] = 0  # type: ignore
+friendInfoTemplate['MemberList'] = []  # type: ignore
 
 def clear_screen():
     os.system('cls' if config.OS == 'Windows' else 'clear')
