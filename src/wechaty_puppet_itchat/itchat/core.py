@@ -3,9 +3,6 @@ import os
 from . import storage
 from .components import load_components
 
-from dataclasses import dataclass
-from dataclasses_json import dataclass_json
-
 
 class Core(object):
     def __init__(self):

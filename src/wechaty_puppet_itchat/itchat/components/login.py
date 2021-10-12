@@ -128,7 +128,7 @@ async def push_login(core):
     if 'wxuin' in cookiesDict:
         url = '%s/cgi-bin/mmwebwx-bin/webwxpushloginurl?uin=%s' % (
             config.BASE_URL, cookiesDict['wxuin'])
-        headers = { 'User-Agent' : config.USER_AGENT }
+        headers = { 'User-Agent' : config.USER_AGENT}
         r = core.s.get(url, headers=headers).json()
         if 'uuid' in r and r.get('ret') in (0, '0'):
             core.uuid = r['uuid']
@@ -142,7 +142,7 @@ def get_QRuuid(self):
         'fun'   : 'new',
         'redirect_uri' : 'https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxnewloginpage?mod=desktop',
         'lang'  : 'zh_CN' }
-    headers = { 'User-Agent' : config.USER_AGENT }
+    headers = { 'User-Agent' : config.USER_AGENT}
     r = self.s.get(url, params=params, headers=headers)
     regx = r'window.QRLogin.code = (\d+); window.QRLogin.uuid = "(\S+?)";'
     data = re.search(regx, r.text)
@@ -173,7 +173,7 @@ async def check_login(self, uuid=None):
     localTime = int(time.time())
     params = 'loginicon=true&uuid=%s&tip=1&r=%s&_=%s' % (
         uuid, int(-localTime / 1579), localTime)
-    headers = { 'User-Agent' : config.USER_AGENT }
+    headers = { 'User-Agent' : config.USER_AGENT}
     r = self.s.get(url, params=params, headers=headers)
     regx = r'window.code=(\d+)'
     data = re.search(regx, r.text)
@@ -356,7 +356,7 @@ def sync_check(self):
         'deviceid' : self.loginInfo['deviceid'],
         'synckey'  : self.loginInfo['synckey'],
         '_'        : self.loginInfo['logintime'], }
-    headers = { 'User-Agent' : config.USER_AGENT }
+    headers = { 'User-Agent' : config.USER_AGENT}
     self.loginInfo['logintime'] += 1
     try:
         r = self.s.get(url, params=params, headers=headers, timeout=config.TIMEOUT)
@@ -405,7 +405,7 @@ def logout(self):
             'redirect' : 1,
             'type'     : 1,
             'skey'     : self.loginInfo['skey'], }
-        headers = { 'User-Agent' : config.USER_AGENT }
+        headers = { 'User-Agent' : config.USER_AGENT}
         self.s.get(url, params=params, headers=headers)
         self.alive = False
     self.isLogging = False

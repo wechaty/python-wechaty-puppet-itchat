@@ -5,7 +5,7 @@ requests
 PyQRCode
 dataclasses
 grpclib
-wechaty
+wechaty~=0.6.24
 loguru
-node-semver~=0.8.1
-setuptools
+node-semver~=0.8.0
+setuptools~=57.4.0

@@ -71,8 +71,8 @@ from wechaty_puppet.exceptions import (  # type: ignore
     # WechatyPuppetPayloadError
 )
 
-from src import itchat
-from src.itchat.content import (  # type: ignore
+from wechaty_puppet_itchat import itchat
+from wechaty_puppet_itchat.itchat.content import (  # type: ignore
     TEXT,
     MAP,
     CARD,
