@@ -330,7 +330,7 @@ def set_alias(self, userName, alias):
         'CmdId'       : 2,
         'RemarkName'  : alias,
         'BaseRequest' : self.loginInfo['BaseRequest'], }
-    headers = { 'User-Agent' : config.USER_AGENT }
+    headers = { 'User-Agent' : config.USER_AGENT}
     r = self.s.post(url, json.dumps(data, ensure_ascii=False).encode('utf8'),
         headers=headers)
     r = ReturnValue(rawResponse=r)
@@ -346,7 +346,7 @@ def set_pinned(self, userName, isPinned=True):
         'CmdId'       : 3,
         'OP'          : int(isPinned),
         'BaseRequest' : self.loginInfo['BaseRequest'], }
-    headers = { 'User-Agent' : config.USER_AGENT }
+    headers = { 'User-Agent' : config.USER_AGENT}
     r = self.s.post(url, json=data, headers=headers)
     return ReturnValue(rawResponse=r)
 
@@ -406,7 +406,7 @@ def get_head_img(self, userName=None, chatroomUserName=None, picDir=None):
             if 'EncryChatRoomId' in chatroom:
                 params['chatroomid'] = chatroom['EncryChatRoomId']
             params['chatroomid'] =  params.get('chatroomid') or chatroom['UserName']
-    headers = { 'User-Agent' : config.USER_AGENT }
+    headers = { 'User-Agent' : config.USER_AGENT}
     r = self.s.get(url, params=params, stream=True, headers=headers)
     tempStorage = io.BytesIO()
     for block in r.iter_content(1024):

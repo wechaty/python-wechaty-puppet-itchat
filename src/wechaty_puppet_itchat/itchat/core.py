@@ -1,10 +1,7 @@
-import requests
+import requests  # type: ignore
 import os
 from . import storage
 from .components import load_components
-
-from dataclasses import dataclass
-from dataclasses_json import dataclass_json
 
 
 class Core(object):
@@ -409,7 +406,7 @@ class Core(object):
         raise NotImplementedError()
     def auto_login(self, hotReload=False, statusStorageDir='itchat.pkl',
             enableCmdQR=False, picDir=None, qrCallback=None,
-            loginCallback=None, exitCallback=None):
+            loginCallback=None, exitCallback=None, EventScanPayload=None, ScanStatus=None, event_stream=None):
         ''' log in like web wechat does
             for log in
                 - a QR code will be downloaded and opened

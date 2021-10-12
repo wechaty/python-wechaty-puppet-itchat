@@ -24,6 +24,12 @@ asyncio.run(bot.start())
 
 ## History
 
+### v0.0.3 (October 12, 2021)
+
+1. Fix Bugs
+2. Move src/itchat to src/wechaty_puppet_itchat/itchat
+3. Add examples
+
 ### v0.0.2 (September 18, 2021)
 
 1. Fix Bugs

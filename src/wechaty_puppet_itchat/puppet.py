@@ -71,8 +71,8 @@ from wechaty_puppet.exceptions import (  # type: ignore
     # WechatyPuppetPayloadError
 )
 
-from src import itchat
-from src.itchat.content import (  # type: ignore
+from wechaty_puppet_itchat import itchat
+from wechaty_puppet_itchat.itchat.content import (  # type: ignore
     TEXT,
     MAP,
     CARD,
@@ -690,7 +690,7 @@ class PuppetItChat(Puppet):
         #     contact_id=contact_id,
         #     hello=hello
         # )
-        await self.itchat.Core.add_friend(self.itchat.Core, userName=contact_id,
+        await self.itchat.Core.add_friend(self.itchat.Core(), userName=contact_id,
                                           status=2, verifyContent=hello)
 
     async def friendship_payload(self, friendship_id: str,
@@ -715,7 +715,7 @@ class PuppetItChat(Puppet):
         :param friendship_id:
         :return:
         """
-        await self.itchat.Core.add_friend(self.itchat.Core, userName=friendship_id, status=3)
+        await self.itchat.Core.add_friend(self.itchat.Core(), userName=friendship_id, status=3)
 
     async def room_create(self, contact_ids: Optional[List[str]], topic: Optional[str] = None
                           ) -> str:
@@ -741,7 +741,7 @@ class PuppetItChat(Puppet):
         """
         # room_list_response = await self.puppet_stub.room_list()
         # return room_list_response.ids
-        room_list = self.itchat.get_chatrooms
+        room_list = self.itchat.get_chatrooms()
         ret_room_list = []
         if query:
             for r in room_list:

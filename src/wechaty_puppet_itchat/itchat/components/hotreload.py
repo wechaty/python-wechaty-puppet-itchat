@@ -1,7 +1,7 @@
 import pickle, os
 import logging
 
-import requests
+import requests  # type: ignore
 
 from ..config import VERSION
 from ..returnvalues import ReturnValue
