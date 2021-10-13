@@ -53,7 +53,7 @@ mypy:
 
 .PHONE: pytype
 pytype:
-	pytype -V 3.7 \
+	pytype \
 		--disable=import-error,pyi-error \
 		src/wechaty_puppet_itchat/puppet.py
 
