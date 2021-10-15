@@ -70,7 +70,6 @@ from wechaty_puppet.exceptions import (  # type: ignore
     WechatyPuppetOperationError,
     # WechatyPuppetPayloadError
 )
-
 from wechaty_puppet_itchat import itchat
 from wechaty_puppet_itchat.itchat.content import (  # type: ignore
     TEXT,
@@ -165,7 +164,7 @@ class PuppetItChat(Puppet):
     grpc wechaty puppet implementation
     """
 
-    def __init__(self, options: PuppetOptions, name: str = 'puppet_itchat'):
+    def __init__(self, options: PuppetOptions = None, name: str = 'puppet_itchat'):
         """init PuppetItChat from options or envrionment
 
         Args:
@@ -175,7 +174,7 @@ class PuppetItChat(Puppet):
         Raises:
             WechatyPuppetConfigurationError: raise Error when configuraiton occur error
         """
-        super().__init__(options, name)
+        super().__init__(None, name)
 
         self.channel: Optional[Channel] = None
         self._event_stream: AsyncIOEventEmitter = AsyncIOEventEmitter()
@@ -183,6 +182,7 @@ class PuppetItChat(Puppet):
         self.puppet_options = None
         self.puppet = self
         self.itchat = itchat
+        self.loop = asyncio.get_event_loop()
 
         self.message_container: Dict[str, dict] = {}
 
@@ -323,7 +323,7 @@ class PuppetItChat(Puppet):
         # response = await self.puppet_stub.message_send_text(
         #     conversation_id=conversation_id,
         #     text=message, mentonal_ids=mention_ids)
-        response = await self.itchat.send_msg(message, toUserName=conversation_id)
+        response = self.itchat.send_msg(message, toUserName=conversation_id)
         return response['MsgID']
 
     async def message_send_contact(self, contact_id: str,
@@ -357,11 +357,11 @@ class PuppetItChat(Puppet):
                 file.name.endswith('.bmp'):
             file_path = file.name
             await file.to_file(file_path=file_path, overwrite=True)
-            response = await self.itchat.send_image(fileDir=file_path, toUserName=conversation_id)
+            response = self.itchat.send_image(fileDir=file_path, toUserName=conversation_id)
             return response['MsgID']
         file_path = file.name
         await file.to_file(overwrite=True)
-        response = await self.itchat.send_file(fileDir=file_path, toUserName=conversation_id)
+        response = self.itchat.send_file(fileDir=file_path, toUserName=conversation_id)
         return response['MsgID']
 
     async def message_send_url(self, conversation_id: str, url: str) -> str:
@@ -690,7 +690,7 @@ class PuppetItChat(Puppet):
         #     contact_id=contact_id,
         #     hello=hello
         # )
-        await self.itchat.Core.add_friend(self.itchat.Core(), userName=contact_id,
+        self.itchat.Core.add_friend(self.itchat.Core(), userName=contact_id,
                                           status=2, verifyContent=hello)
 
     async def friendship_payload(self, friendship_id: str,
@@ -715,7 +715,7 @@ class PuppetItChat(Puppet):
         :param friendship_id:
         :return:
         """
-        await self.itchat.Core.add_friend(self.itchat.Core(), userName=friendship_id, status=3)
+        self.itchat.Core.add_friend(self.itchat.Core(), userName=friendship_id, status=3)
 
     async def room_create(self, contact_ids: Optional[List[str]], topic: Optional[str] = None
                           ) -> str:
@@ -1001,7 +1001,7 @@ class PuppetItChat(Puppet):
         if self.login_user_id is None:
             raise WechatyPuppetOperationError('logout before login?')
         try:
-            await self.itchat.logout()
+            self.itchat.logout()
         # pylint: disable=W0703
         except Exception as exception:
             log.error('logout() rejection %s', exception)
@@ -1056,18 +1056,15 @@ class PuppetItChat(Puppet):
             self._event_stream.emit('logout', payload)
             await asyncio.sleep(0.1)
 
-        await self.itchat.auto_login(
-            enableCmdQR=True,
-            qrCallback=on_scan,
-            EventScanPayload=EventScanPayload,
-            ScanStatus=ScanStatus,
-            event_stream=self._event_stream,
-            loginCallback=on_logined,
-            exitCallback=on_logout
-        )
-
+        itchat.auto_login(hotReload=True)
+        # loop_func = itchat.run(blockThread=False, return_reply=True)
+        
+        async def emit_message(msg_payload):
+            self._event_stream.emit('message', msg_payload)
+        
         @self.itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
-        async def on_message_person_text(msg):
+        def on_message_person_text(msg):
+            print(f'receive message <{msg.text}> ...')
             self.message_container[msg['MsgId']] = msg
             log.info(f'receive message info <{msg.text}>')
             event_message_payload = EventMessagePayload(
@@ -1079,12 +1076,14 @@ class PuppetItChat(Puppet):
                 timestamp=msg['CreateTime'],
                 to_id=msg['ToUserName']
             )
-
+            # asyncio.get_event_loop().run_until_complete(
+            #     emit_message(event_message_payload)
+            # )
+            # self.loop.run_until_complete()
             self._event_stream.emit('message', event_message_payload)
-            await asyncio.sleep(0.1)
 
         @self.itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isGroupChat=True)
-        async def on_message_group_text(msg):
+        def on_message_group_text(msg):
             self.message_container[msg['MsgId']] = msg
             log.info(f'receive message info <{msg.text}>')
             event_message_payload = EventMessagePayload(
@@ -1096,70 +1095,9 @@ class PuppetItChat(Puppet):
                 timestamp=msg['CreateTime'],
                 to_id=msg['ToUserName']
             )
-
             self._event_stream.emit('message', event_message_payload)
-            await asyncio.sleep(0.1)
-
-        @self.itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO])
-        async def on_message_person_file(msg):
-            self.message_container[msg['MsgId']] = msg
-            log.info(f'receive file message info <{msg.FileName}>')
-            event_message_payload = EventMessagePayload(
-                message_id=msg['MsgId'],
-                type=msg['Type'],
-                from_id=msg['FromUserName'],
-                filename=msg['FileName'],
-                text='',
-                timestamp=msg['CreateTime'],
-                to_id=msg['ToUserName']
-            )
-
-            self._event_stream.emit('message', event_message_payload)
-            await asyncio.sleep(0.1)
-
-        @self.itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO, VOICE], isGroupChat=True)
-        async def on_message_group_file(msg):
-            self.message_container[msg['MsgId']] = msg
-            log.info(f'receive file message info <{msg.FileName}>')
-            event_message_payload = EventMessagePayload(
-                message_id=msg['MsgId'],
-                type=msg['Type'],
-                from_id=msg['FromUserName'],
-                filename=msg['FileName'],
-                text='',
-                timestamp=msg['CreateTime'],
-                to_id=msg['ToUserName']
-            )
-
-            self._event_stream.emit('message', event_message_payload)
-            await asyncio.sleep(0.1)
-
-        @itchat.msg_register(FRIENDS)
-        def add_friend(msg):
-            self.message_container[msg['MsgId']] = msg
-            log.info(f'receive file message info <{msg.user}>')
-            msg.user.verify()
-
-        # @itchat.msg_register(SYSTEM)
-        # def handle_system_msg(msg):
-        #     log.info(f'receive system message info <{msg["Text"]}>')
-
-        message_container = self.message_container.copy()
-
-        async def run(self, event_stream, payload):
-            async def reply_fn():
-                try:
-                    while self.alive:
-                        await self.configured_reply(event_stream=event_stream, payload=payload,
-                                                    message_container=message_container)
-                except KeyboardInterrupt:
-                    if self.useHotReload:
-                        await self.dump_login_status()
-                    self.alive = False
-
-            while True:
-                await asyncio.sleep(0.5)
-                await reply_fn()
-
-        self.itchat.run = types.MethodType(run, self.itchat.originInstance)
-        await self.itchat.run(event_stream=self._event_stream, payload=EventMessagePayload)
+        
+        while True:
+            print('tick ...')
+            await asyncio.sleep(0.5)
+            self.itchat.configured_reply()
