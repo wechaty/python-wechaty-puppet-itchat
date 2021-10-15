@@ -21,18 +21,30 @@ limitations under the License.
 from __future__ import annotations
 
 import asyncio
-import types
 from typing import Optional, List, Dict
 
 from grpclib.client import Channel
 
 from pyee import AsyncIOEventEmitter  # type: ignore
 
+import itchat
+from itchat.content import (
+    TEXT,
+    MAP,
+    CARD,
+    NOTE,
+    SHARING,
+    # PICTURE,
+    # RECORDING,
+    # VOICE,
+    # ATTACHMENT,
+    # VIDEO,
+    # FRIENDS
+)
 from wechaty_puppet.schemas.types import PayloadType  # type: ignore
-
 from wechaty_puppet import (  # type: ignore
-    EventScanPayload,
-    ScanStatus,
+    # EventScanPayload,
+    # ScanStatus,
 
     # EventReadyPayload,
     #
@@ -69,20 +81,6 @@ from wechaty_puppet.exceptions import (  # type: ignore
     WechatyPuppetGrpcError,
     WechatyPuppetOperationError,
     # WechatyPuppetPayloadError
-)
-from wechaty_puppet_itchat import itchat
-from wechaty_puppet_itchat.itchat.content import (  # type: ignore
-    TEXT,
-    MAP,
-    CARD,
-    NOTE,
-    SHARING,
-    PICTURE,
-    RECORDING,
-    VOICE,
-    ATTACHMENT,
-    VIDEO,
-    FRIENDS
 )
 
 # pylint: disable=E0401
@@ -158,7 +156,7 @@ def _map_message_type(message_payload: MessagePayload) -> MessagePayload:
     return message_payload
 
 
-# pylint: disable=R0904
+# pylint: disable=R0904, R0902
 class PuppetItChat(Puppet):
     """
     grpc wechaty puppet implementation
@@ -690,8 +688,10 @@ class PuppetItChat(Puppet):
         #     contact_id=contact_id,
         #     hello=hello
         # )
-        self.itchat.Core.add_friend(self.itchat.Core(), userName=contact_id,
-                                          status=2, verifyContent=hello)
+        self.itchat.Core.add_friend(
+            self.itchat.Core(), userName=contact_id,
+            status=2, verifyContent=hello
+        )
 
     async def friendship_payload(self, friendship_id: str,
                                  payload: Optional[FriendshipPayload] = None
@@ -1036,32 +1036,29 @@ class PuppetItChat(Puppet):
         """
         log.info('listening the event from the puppet ...')
 
-        async def on_scan(uuid: str):
-            payload = EventScanPayload(
-                status=ScanStatus.Waiting,
-                qrcode=f'https://login.weixin.qq.com/l/{uuid}'
-            )
-            self._event_stream.emit('scan', payload)
-            await asyncio.sleep(0.1)
+        # async def on_scan(uuid: str):
+        #     payload = EventScanPayload(
+        #         status=ScanStatus.Waiting,
+        #         qrcode=f'https://login.weixin.qq.com/l/{uuid}'
+        #     )
+        #     self._event_stream.emit('scan', payload)
+        #     await asyncio.sleep(0.1)
 
-        async def on_logined(userName: str):
-            event_login_payload = EventLoginPayload(contact_id=userName)
-            self.login_user_id = userName
-            self._event_stream.emit('login', event_login_payload)
-            await asyncio.sleep(0.1)
+        # async def on_logined(userName: str):
+        #     event_login_payload = EventLoginPayload(contact_id=userName)
+        #     self.login_user_id = userName
+        #     self._event_stream.emit('login', event_login_payload)
+        #     await asyncio.sleep(0.1)
 
-        async def on_logout(userName: str):
-            payload = EventLogoutPayload(contact_id=userName, data='')
-            self.login_user_id = None
-            self._event_stream.emit('logout', payload)
-            await asyncio.sleep(0.1)
+        # async def on_logout(userName: str):
+        #     payload = EventLogoutPayload(contact_id=userName, data='')
+        #     self.login_user_id = None
+        #     self._event_stream.emit('logout', payload)
+        #     await asyncio.sleep(0.1)
 
         itchat.auto_login(hotReload=True)
         # loop_func = itchat.run(blockThread=False, return_reply=True)
-        
-        async def emit_message(msg_payload):
-            self._event_stream.emit('message', msg_payload)
-        
+
         @self.itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
         def on_message_person_text(msg):
             print(f'receive message <{msg.text}> ...')
@@ -1096,7 +1093,7 @@ class PuppetItChat(Puppet):
                 to_id=msg['ToUserName']
             )
             self._event_stream.emit('message', event_message_payload)
-        
+
         while True:
             print('tick ...')
             await asyncio.sleep(0.5)
