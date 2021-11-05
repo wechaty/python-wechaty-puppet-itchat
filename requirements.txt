@@ -9,3 +9,4 @@ wechaty~=0.8.25
 loguru
 node-semver~=0.8.1
 setuptools~=58.2.0
+itchat-uos

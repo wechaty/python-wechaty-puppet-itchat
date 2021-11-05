@@ -2,6 +2,7 @@
 from typing import List, Optional, Union
 import asyncio
 from datetime import datetime
+from wechaty.wechaty import WechatyOptions
 from wechaty_puppet import get_logger
 from wechaty import (
     MessageType,
@@ -17,6 +18,10 @@ from wechaty import (
     FriendshipType,
     EventReadyPayload
 )
+import os, sys
+
+sys.path.insert(0, 'src')
+from wechaty_puppet_itchat import PuppetItChat
 
 logger = get_logger(__name__)
 
@@ -31,7 +36,9 @@ class MyBot(Wechaty):
         """initialization function
         """
         self.login_user: Optional[Contact] = None
-        super().__init__()
+        super().__init__(options=WechatyOptions(
+            puppet=PuppetItChat()
+        ))
 
     async def on_ready(self, payload: EventReadyPayload) -> None:
         """listen for on-ready event"""
@@ -42,6 +49,8 @@ class MyBot(Wechaty):
         """
         listen for message event
         """
+        print(f'bot receive message {msg}')
+        
         from_contact: Contact = msg.talker()
         text: str = msg.text()
         room: Optional[Room] = msg.room()
@@ -50,7 +59,6 @@ class MyBot(Wechaty):
         if text == 'ding':
             conversation: Union[
                 Room, Contact] = from_contact if room is None else room
-            await conversation.ready()
             await conversation.say('dong')
             file_box = FileBox.from_url(
                 'https://ss3.bdstatic.com/70cFv8Sh_Q1YnxGkpoWK1HF6hhy/it/'
