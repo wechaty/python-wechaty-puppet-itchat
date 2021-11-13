@@ -7,5 +7,6 @@ dataclasses
 grpclib
 wechaty~=0.8.25
 loguru
+git+git://github.com/why2lyj/ItChat-UOS@master#egg=itchat
 node-semver~=0.8.1
 setuptools~=58.2.0
