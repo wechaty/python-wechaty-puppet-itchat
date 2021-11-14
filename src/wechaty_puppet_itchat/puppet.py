@@ -27,7 +27,7 @@ from grpclib.client import Channel
 
 from pyee import AsyncIOEventEmitter  # type: ignore
 
-import itchat
+from itchat import load_async_itchat
 from itchat.content import (
     TEXT,
     MAP,
@@ -172,7 +172,7 @@ class PuppetItChat(Puppet):
         self.login_user_id: Optional[str] = None
         self.puppet_options = None
         self.puppet = self
-        self.itchat = itchat.load_async_itchat()
+        self.itchat = load_async_itchat()
         self.message_container: Dict[str, dict] = {}
 
     async def room_list(self) -> List[str]:
