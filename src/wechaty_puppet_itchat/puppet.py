@@ -20,7 +20,6 @@ limitations under the License.
 """
 from __future__ import annotations
 
-import os
 import asyncio
 from typing import Optional, List, Dict
 
@@ -86,8 +85,6 @@ from wechaty_puppet.exceptions import (  # type: ignore
 # pylint: disable=E0401, E1123
 
 log = get_logger('ItChatPuppet')
-
-os.environ['ITCHAT_UOS_ASYNC'] = '1'
 
 
 def _map_message_type(message_payload: MessagePayload) -> MessagePayload:
@@ -175,9 +172,7 @@ class PuppetItChat(Puppet):
         self.login_user_id: Optional[str] = None
         self.puppet_options = None
         self.puppet = self
-        self.itchat = itchat
-        self.loop = asyncio.get_event_loop()
-
+        self.itchat = itchat.load_async_itchat()
         self.message_container: Dict[str, dict] = {}
 
     async def room_list(self) -> List[str]:
@@ -994,7 +989,6 @@ class PuppetItChat(Puppet):
             self.login_user_id = None
             self._event_stream.emit('logout', payload)
 
-        # await self.itchat.async_components.register.auto_login()
         await self.itchat.auto_login(
             statusStorageDir='itchat.pkl',
             enableCmdQR=True,
@@ -1006,10 +1000,8 @@ class PuppetItChat(Puppet):
             exitCallback=on_logout
         )
 
-        # loop_func = itchat.run(blockThread=False, return_reply=True)
-
         @self.itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
-        def on_message_person_text(msg):
+        async def on_message_person_text(msg):
             print(f'receive message <{msg.text}> ...')
             self.message_container[msg['MsgId']] = msg
             log.info(f'receive message info <{msg.text}>')
@@ -1022,14 +1014,10 @@ class PuppetItChat(Puppet):
                 timestamp=msg['CreateTime'],
                 to_id=msg['ToUserName']
             )
-            # asyncio.get_event_loop().run_until_complete(
-            #     emit_message(event_message_payload)
-            # )
-            # self.loop.run_until_complete()
             self._event_stream.emit('message', event_message_payload)
 
         @self.itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isGroupChat=True)
-        def on_message_group_text(msg):
+        async def on_message_group_text(msg):
             self.message_container[msg['MsgId']] = msg
             log.info(f'receive message info <{msg.text}>')
             event_message_payload = EventMessagePayload(
@@ -1045,7 +1033,7 @@ class PuppetItChat(Puppet):
             self._event_stream.emit('message', event_message_payload)
 
         @self.itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO])
-        def on_message_person_file(msg):
+        async def on_message_person_file(msg):
             self.message_container[msg['MsgId']] = msg
             log.info(f'receive file message info <{msg.FileName}>')
             event_message_payload = EventMessagePayload(
@@ -1060,7 +1048,7 @@ class PuppetItChat(Puppet):
             self._event_stream.emit('message', event_message_payload)
 
         @self.itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO, VOICE], isGroupChat=True)
-        def on_message_group_file(msg):
+        async def on_message_group_file(msg):
             self.message_container[msg['MsgId']] = msg
             log.info(f'receive file message info <{msg.FileName}>')
             event_message_payload = EventMessagePayload(
@@ -1075,7 +1063,7 @@ class PuppetItChat(Puppet):
             self._event_stream.emit('message', event_message_payload)
 
         while True:
-            print('tick ...')
+            log.debug('tick ...')
             await asyncio.sleep(0.1)
             await self.itchat.configured_reply(
                 event_stream=self._event_stream,
