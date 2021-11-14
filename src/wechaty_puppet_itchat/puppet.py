@@ -21,15 +21,26 @@ limitations under the License.
 from __future__ import annotations
 
 import asyncio
-import types
 from typing import Optional, List, Dict
 
 from grpclib.client import Channel
 
 from pyee import AsyncIOEventEmitter  # type: ignore
 
+from itchat import load_async_itchat
+from itchat.content import (
+    TEXT,
+    MAP,
+    CARD,
+    NOTE,
+    SHARING,
+    PICTURE,
+    RECORDING,
+    VOICE,
+    ATTACHMENT,
+    VIDEO
+)
 from wechaty_puppet.schemas.types import PayloadType  # type: ignore
-
 from wechaty_puppet import (  # type: ignore
     EventScanPayload,
     ScanStatus,
@@ -71,22 +82,7 @@ from wechaty_puppet.exceptions import (  # type: ignore
     # WechatyPuppetPayloadError
 )
 
-from wechaty_puppet_itchat import itchat
-from wechaty_puppet_itchat.itchat.content import (  # type: ignore
-    TEXT,
-    MAP,
-    CARD,
-    NOTE,
-    SHARING,
-    PICTURE,
-    RECORDING,
-    VOICE,
-    ATTACHMENT,
-    VIDEO,
-    FRIENDS
-)
-
-# pylint: disable=E0401
+# pylint: disable=E0401, E1123
 
 log = get_logger('ItChatPuppet')
 
@@ -97,7 +93,6 @@ def _map_message_type(message_payload: MessagePayload) -> MessagePayload:
         but is MessageType. so we should map it to MessageType from wechaty-grpc
     target MessageType Enum:
         MESSAGE_TYPE_UNSPECIFIED  = 0;
-
        MESSAGE_TYPE_ATTACHMENT   = 1;
        MESSAGE_TYPE_AUDIO        = 2;
        MESSAGE_TYPE_CONTACT      = 3;
@@ -112,11 +107,9 @@ def _map_message_type(message_payload: MessagePayload) -> MessagePayload:
        MESSAGE_TYPE_RED_ENVELOPE = 12;
        MESSAGE_TYPE_RECALLED     = 13;
        MESSAGE_TYPE_URL          = 14;
-
     source MessageType Enum:
         export enum MessageType {
           Unknown = 0,
-
           Attachment=1,     // Attach(6),
           Audio=2,          // Audio(1), Voice(34)
           Contact=3,        // ShareCard(42)
@@ -134,7 +127,6 @@ def _map_message_type(message_payload: MessagePayload) -> MessagePayload:
           Video=15,          // Video(4), Video(43)
         }
     :return:
-
     #
     """
     if isinstance(message_payload.type, int):
@@ -159,19 +151,17 @@ def _map_message_type(message_payload: MessagePayload) -> MessagePayload:
     return message_payload
 
 
-# pylint: disable=R0904
+# pylint: disable=R0904, R0902
 class PuppetItChat(Puppet):
     """
     grpc wechaty puppet implementation
     """
 
-    def __init__(self, options: PuppetOptions, name: str = 'puppet_itchat'):
+    def __init__(self, options: PuppetOptions = None, name: str = 'puppet_itchat'):
         """init PuppetItChat from options or envrionment
-
         Args:
             options (PuppetOptions): the configuration of PuppetItChat
             name (str, optional): [description]. Defaults to 'puppet_itchat'.
-
         Raises:
             WechatyPuppetConfigurationError: raise Error when configuraiton occur error
         """
@@ -182,8 +172,7 @@ class PuppetItChat(Puppet):
         self.login_user_id: Optional[str] = None
         self.puppet_options = None
         self.puppet = self
-        self.itchat = itchat
-
+        self.itchat = load_async_itchat()
         self.message_container: Dict[str, dict] = {}
 
     async def room_list(self) -> List[str]:
@@ -205,17 +194,6 @@ class PuppetItChat(Puppet):
         :param image_type:
         :return:
         """
-        # file_chunk_data: List[bytes] = []
-        # name: str = ''
-        #
-        # async for stream in self.puppet_stub.message_image_stream(id=message_id, type=image_type):
-        #     file_chunk_data.append(stream.file_box_chunk.data)
-        #     if not name and stream.file_box_chunk.name:
-        #         name = stream.file_box_chunk.name
-        #
-        # file_stream = reduce(lambda pre, cu: pre + cu, file_chunk_data)
-        # file_box = FileBox.from_stream(file_stream, name=name)
-        # return file_box
         if message_id not in self.message_container:
             raise ValueError('img message not found')
         msg = self.message_container[message_id]
@@ -499,14 +477,6 @@ class PuppetItChat(Puppet):
         :param message_id:
         :return:
         """
-        # file_chunk_data: List[bytes] = []
-        # name: str = ''
-        #
-        # async for stream in self.puppet_stub.message_file_stream(id=message_id):
-        #     file_chunk_data.append(stream.file_box_chunk.data)
-        #     if not name and stream.file_box_chunk.name:
-        #         name = stream.file_box_chunk.name
-
         if message_id not in self.message_container:
             raise ValueError('file message not found')
         msg = self.message_container[message_id]
@@ -535,8 +505,6 @@ class PuppetItChat(Puppet):
         :param message_id:
         :return:
         """
-        # response = await self.puppet_stub.message_contact(id=message_id)
-        # return response.id
         if message_id not in self.message_container:
             raise ValueError('contact message not found')
         msg = self.message_container[message_id]
@@ -587,11 +555,6 @@ class PuppetItChat(Puppet):
         :param alias:
         :return:
         """
-        # response = await self.puppet_stub.contact_alias(
-        #     id=contact_id, alias=alias)
-        # if response.alias is None and alias is None:
-        #     raise WechatyPuppetGrpcError('can"t get contact<%s> alias' % contact_id)
-        # return response.alias
         contact = await self.contact_payload(contact_id=contact_id)
         if contact.alias is None and alias is None:
             raise WechatyPuppetGrpcError(f'can"t get contact<{contact_id}> alias')
@@ -611,8 +574,6 @@ class PuppetItChat(Puppet):
         :param contact_id:
         :return:
         """
-        # response = await self.puppet_stub.contact_payload(id=contact_id)
-        # return response
         contact_list = self.itchat.get_contact(update=True)
         for c in contact_list:
             if c['UserName'] == contact_id:
@@ -636,9 +597,6 @@ class PuppetItChat(Puppet):
         :param file_box:
         :return:
         """
-        # response = await self.puppet_stub.contact_avatar(
-        #     id=contact_id, filebox=file_box)
-        # return FileBox.from_json(response.filebox)
         self.itchat.get_head_img(userName=contact_id, picDir=contact_id + '.jpg')
         return FileBox.from_file(path=contact_id + '.jpg')
 
@@ -686,12 +644,10 @@ class PuppetItChat(Puppet):
         :param hello:
         :return:
         """
-        # await self.puppet_stub.friendship_add(
-        #     contact_id=contact_id,
-        #     hello=hello
-        # )
-        await self.itchat.Core.add_friend(self.itchat.Core(), userName=contact_id,
-                                          status=2, verifyContent=hello)
+        await self.itchat.add_friend(
+            userName=contact_id,
+            status=2, verifyContent=hello
+        )
 
     async def friendship_payload(self, friendship_id: str,
                                  payload: Optional[FriendshipPayload] = None
@@ -715,7 +671,7 @@ class PuppetItChat(Puppet):
         :param friendship_id:
         :return:
         """
-        await self.itchat.Core.add_friend(self.itchat.Core(), userName=friendship_id, status=3)
+        await self.itchat.add_friend(userName=friendship_id, status=3)
 
     async def room_create(self, contact_ids: Optional[List[str]], topic: Optional[str] = None
                           ) -> str:
@@ -795,14 +751,12 @@ class PuppetItChat(Puppet):
 
     async def contact_signature(self, signature: str):
         """
-
         :param signature:
         :return:
         """
 
     async def room_validate(self, room_id: str) -> bool:
         """
-
         :param room_id:
         :return:
         """
@@ -831,12 +785,9 @@ class PuppetItChat(Puppet):
 
     async def room_payload(self, room_id: str) -> RoomPayload:
         """
-
         :param room_id:
         :return:
         """
-        # response = await self.puppet_stub.room_payload(id=room_id)
-        # return response
         room_list = self.itchat.get_chatrooms(update=True)
         for r in room_list:
             if r['UserName'] == room_id:
@@ -851,12 +802,9 @@ class PuppetItChat(Puppet):
 
     async def room_members(self, room_id: str) -> List[str]:
         """
-
         :param room_id:
         :return:
         """
-        # response = await self.puppet_stub.room_member_list(id=room_id)
-        # return response.member_ids
         rooms_list = self.itchat.get_chatrooms()
         contact_list = []
         for r in rooms_list:
@@ -951,18 +899,6 @@ class PuppetItChat(Puppet):
         :param room_id:
         :return:
         """
-        # room_avatar_response = await self.puppet_stub.room_avatar(id=room_id)
-        #
-        # file_box_data = json.loads(room_avatar_response.filebox)
-        #
-        # if 'remoteUrl' not in file_box_data:
-        #     raise WechatyPuppetPayloadError('invalid room avatar response')
-        #
-        # file_box = FileBox.from_url(
-        #     url=file_box_data['remoteUrl'],
-        #     name=f'avatar-{room_id}.jpeg'
-        # )
-        # return file_box
         self.itchat.get_head_img(chatroomUserName=room_id, picDir=room_id + '.jpg')
         return FileBox.from_file(path=room_id + '.jpg')
 
@@ -1042,21 +978,19 @@ class PuppetItChat(Puppet):
                 qrcode=f'https://login.weixin.qq.com/l/{uuid}'
             )
             self._event_stream.emit('scan', payload)
-            await asyncio.sleep(0.1)
 
         async def on_logined(userName: str):
             event_login_payload = EventLoginPayload(contact_id=userName)
             self.login_user_id = userName
             self._event_stream.emit('login', event_login_payload)
-            await asyncio.sleep(0.1)
 
         async def on_logout(userName: str):
             payload = EventLogoutPayload(contact_id=userName, data='')
             self.login_user_id = None
             self._event_stream.emit('logout', payload)
-            await asyncio.sleep(0.1)
 
         await self.itchat.auto_login(
+            statusStorageDir='itchat.pkl',
             enableCmdQR=True,
             qrCallback=on_scan,
             EventScanPayload=EventScanPayload,
@@ -1068,6 +1002,7 @@ class PuppetItChat(Puppet):
 
         @self.itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING])
         async def on_message_person_text(msg):
+            print(f'receive message <{msg.text}> ...')
             self.message_container[msg['MsgId']] = msg
             log.info(f'receive message info <{msg.text}>')
             event_message_payload = EventMessagePayload(
@@ -1079,9 +1014,7 @@ class PuppetItChat(Puppet):
                 timestamp=msg['CreateTime'],
                 to_id=msg['ToUserName']
             )
-
             self._event_stream.emit('message', event_message_payload)
-            await asyncio.sleep(0.1)
 
         @self.itchat.msg_register([TEXT, MAP, CARD, NOTE, SHARING], isGroupChat=True)
         async def on_message_group_text(msg):
@@ -1098,7 +1031,6 @@ class PuppetItChat(Puppet):
             )
 
             self._event_stream.emit('message', event_message_payload)
-            await asyncio.sleep(0.1)
 
         @self.itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO])
         async def on_message_person_file(msg):
@@ -1113,9 +1045,7 @@ class PuppetItChat(Puppet):
                 timestamp=msg['CreateTime'],
                 to_id=msg['ToUserName']
             )
-
             self._event_stream.emit('message', event_message_payload)
-            await asyncio.sleep(0.1)
 
         @self.itchat.msg_register([PICTURE, RECORDING, ATTACHMENT, VIDEO, VOICE], isGroupChat=True)
         async def on_message_group_file(msg):
@@ -1130,36 +1060,12 @@ class PuppetItChat(Puppet):
                 timestamp=msg['CreateTime'],
                 to_id=msg['ToUserName']
             )
-
             self._event_stream.emit('message', event_message_payload)
+
+        while True:
+            log.debug('tick ...')
             await asyncio.sleep(0.1)
-
-        @itchat.msg_register(FRIENDS)
-        def add_friend(msg):
-            self.message_container[msg['MsgId']] = msg
-            log.info(f'receive file message info <{msg.user}>')
-            msg.user.verify()
-
-        # @itchat.msg_register(SYSTEM)
-        # def handle_system_msg(msg):
-        #     log.info(f'receive system message info <{msg["Text"]}>')
-
-        message_container = self.message_container.copy()
-
-        async def run(self, event_stream, payload):
-            async def reply_fn():
-                try:
-                    while self.alive:
-                        await self.configured_reply(event_stream=event_stream, payload=payload,
-                                                    message_container=message_container)
-                except KeyboardInterrupt:
-                    if self.useHotReload:
-                        await self.dump_login_status()
-                    self.alive = False
-
-            while True:
-                await asyncio.sleep(0.5)
-                await reply_fn()
-
-        self.itchat.run = types.MethodType(run, self.itchat.originInstance)
-        await self.itchat.run(event_stream=self._event_stream, payload=EventMessagePayload)
+            await self.itchat.configured_reply(
+                event_stream=self._event_stream,
+                payload=None,
+                message_container=self.message_container)
