@@ -5,7 +5,7 @@ requests
 PyQRCode
 dataclasses
 grpclib
-wechaty~=0.8.25
+wechaty~=0.8.52
 loguru
 git+git://github.com/why2lyj/ItChat-UOS@master#egg=itchat
 node-semver~=0.8.1
