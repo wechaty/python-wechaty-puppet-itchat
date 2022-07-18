@@ -13,13 +13,21 @@ Python Puppet for Wechaty
 
 ```python
 import asyncio
-from wechaty import Wechaty
 from wechaty_puppet_itchat import PuppetItChat
+from wechaty_puppet import PuppetOptions
+from wechaty import Wechaty, WechatyOptions
 
-bot = Wechaty(PuppetItChat())
-bot.on('message', lambda x: print(x))
 
-asyncio.run(bot.start())
+async def main():
+    options = WechatyOptions(
+        puppet=PuppetItChat(PuppetOptions())
+    )
+    bot = Wechaty(options)
+    await bot.start()
+
+asyncio.run(main())
+
+
 ```
 
 ## History
