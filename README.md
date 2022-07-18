@@ -6,8 +6,13 @@
 
 Python Puppet for Wechaty
 
-## Features
+# Quick Start
 
+## Installation
+
+```shell
+pip install wechaty-puppet-itchat
+```
 
 ## Usage
 
