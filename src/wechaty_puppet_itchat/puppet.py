@@ -72,9 +72,15 @@ from wechaty_puppet.exceptions import (  # type: ignore
     WechatyPuppetOperationError,
     # WechatyPuppetPayloadError
 )
-
-from itchat import load_async_itchat
-from itchat.content import (
+import sys
+import os
+if os.name == 'nt':
+    sys.path.insert(0,f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}/wechaty_puppet_itchat')
+    
+sys.path.insert(0,f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}/wechaty_puppet_itchat')
+    
+from itchat  import load_async_itchat
+from itchat.async_components import (
     TEXT,
     MAP,
     CARD,
