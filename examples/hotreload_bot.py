@@ -1,8 +1,15 @@
 import asyncio
-from http import server
 import uvicorn
 from fastapi import Depends, FastAPI
 from wechaty import Wechaty, get_logger, ContactQueryFilter, WechatyOptions,Contact,FileBox,Message
+import sys
+import os
+if os.name == 'nt':
+    sys.path.insert(0,os.path.realpath(f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}\src'))
+    print(os.path.realpath(f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}\src'))
+sys.path.insert(0,os.path.realpath(f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}/src'))
+
+# sys.path.append('..\src\wechaty_puppet_itchat\itchat')
 from wechaty_puppet_itchat import PuppetItChat
 from grpclib.exceptions import StreamTerminatedError
 from pydantic import BaseModel

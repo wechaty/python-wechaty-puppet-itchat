@@ -1,10 +1,14 @@
 import asyncio
-from http import server
-import uvicorn
 from quart import Quart
 from wechaty import Wechaty, get_logger, ContactQueryFilter, WechatyOptions,Contact,FileBox,Message
-from wechaty_puppet_itchat import PuppetItChat
-from src.wechaty_puppet_itchat import PuppetItChat
+# from wechaty_puppet_itchat import PuppetItChat
+import sys
+import os
+if os.name == 'nt':
+    sys.path.insert(0,os.path.realpath(f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}\src'))
+    print(os.path.realpath(f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}\src'))
+sys.path.insert(0,os.path.realpath(f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}/src'))
+from wechaty_puppet_itchat.puppet import PuppetItChat
 from pydantic import BaseModel
 import os
 os.environ['ASYNC_COMPONENTS'] = 'ITCHAT_UOS_ASYNC'
