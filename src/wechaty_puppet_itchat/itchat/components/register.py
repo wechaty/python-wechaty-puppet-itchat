@@ -2,7 +2,7 @@ import logging, traceback, sys, threading
 try:
     import Queue
 except ImportError:
-    import queue as Queue  # type: ignore
+    import queue as Queue
 
 from ..log import set_logging
 from ..utils import test_connect
@@ -16,8 +16,7 @@ def load_register(core):
     core.msg_register     = msg_register
     core.run              = run
 
-async def auto_login(self, EventScanPayload=None,ScanStatus=None,event_stream=None,
-        hotReload=True, statusStorageDir='itchat.pkl',
+def auto_login(self, hotReload=False, statusStorageDir='itchat.pkl',
         enableCmdQR=False, picDir=None, qrCallback=None,
         loginCallback=None, exitCallback=None):
     if not test_connect():
@@ -26,17 +25,17 @@ async def auto_login(self, EventScanPayload=None,ScanStatus=None,event_stream=No
     self.useHotReload = hotReload
     self.hotReloadDir = statusStorageDir
     if hotReload:
-        if await self.load_login_status(statusStorageDir,
+        if self.load_login_status(statusStorageDir,
                 loginCallback=loginCallback, exitCallback=exitCallback):
             return
-        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback, EventScanPayload=EventScanPayload, ScanStatus=ScanStatus, event_stream=event_stream,
+        self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback,
             loginCallback=loginCallback, exitCallback=exitCallback)
-        await self.dump_login_status(statusStorageDir)
+        self.dump_login_status(statusStorageDir)
     else:
-        await self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback, EventScanPayload=EventScanPayload, ScanStatus=ScanStatus, event_stream=event_stream,
+        self.login(enableCmdQR=enableCmdQR, picDir=picDir, qrCallback=qrCallback,
             loginCallback=loginCallback, exitCallback=exitCallback)
 
-async def configured_reply(self, event_stream, payload, message_container):
+def configured_reply(self):
     ''' determine the type of message and reply if its method is defined
         however, I use a strange way to determine whether a msg is from massive platform
         I haven't found a better solution here
@@ -45,8 +44,6 @@ async def configured_reply(self, event_stream, payload, message_container):
     '''
     try:
         msg = self.msgList.get(timeout=1)
-        if 'MsgId' in msg.keys():
-            message_container[msg['MsgId']] = msg
     except Queue.Empty:
         pass
     else:
@@ -60,9 +57,9 @@ async def configured_reply(self, event_stream, payload, message_container):
             r = None
         else:
             try:
-                r = await replyFn(msg)
+                r = replyFn(msg)
                 if r is not None:
-                    await self.send(r, msg.get('FromUserName'))
+                    self.send(r, msg.get('FromUserName'))
             except:
                 logger.warning(traceback.format_exc())
 
@@ -84,22 +81,22 @@ def msg_register(self, msgType, isFriendChat=False, isGroupChat=False, isMpChat=
         return fn
     return _msg_register
 
-async def run(self, debug=False, blockThread=True):
+def run(self, debug=False, blockThread=True):
     logger.info('Start auto replying.')
     if debug:
         set_logging(loggingLevel=logging.DEBUG)
-    async def reply_fn():
+    def reply_fn():
         try:
             while self.alive:
-                await self.configured_reply()
+                self.configured_reply()
         except KeyboardInterrupt:
             if self.useHotReload:
-                await self.dump_login_status()
+                self.dump_login_status()
             self.alive = False
             logger.debug('itchat received an ^C and exit.')
             logger.info('Bye~')
     if blockThread:
-        await reply_fn()
+        reply_fn()
     else:
         replyThread = threading.Thread(target=reply_fn)
         replyThread.setDaemon(True)

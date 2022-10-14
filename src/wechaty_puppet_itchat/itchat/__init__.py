@@ -1,67 +1,96 @@
-from . import content
 from .core import Core
-from .config import VERSION
+from .config import VERSION, ASYNC_COMPONENTS
 from .log import set_logging
+
+if ASYNC_COMPONENTS:
+    from itchat.async_components import load_components
+else:
+    from itchat.components import load_components
+
 
 __version__ = VERSION
 
+
 instanceList = []
 
-def new_instance():
-    newInstance = Core()
-    instanceList.append(newInstance)
-    return newInstance
+def load_async_itchat() -> Core:
+    """load async-based itchat instance
 
-originInstance = new_instance()
+    Returns:
+        Core: the abstract interface of itchat
+    """
+    from itchat.async_components import load_components
+    load_components(Core)
+    return Core()
+
+
+def load_sync_itchat() -> Core:
+    """load sync-based itchat instance
+
+    Returns:
+        Core: the abstract interface of itchat
+    """
+    from itchat.components import load_components
+    load_components(Core)
+    return Core()
+
+
+if ASYNC_COMPONENTS:
+    instance = load_async_itchat()
+else:
+    instance = load_sync_itchat()
+
+
+instanceList = [instance]
 
 # I really want to use sys.modules[__name__] = originInstance
 # but it makes auto-fill a real mess, so forgive me for my following **
 # actually it toke me less than 30 seconds, god bless Uganda
 
 # components.login
-login                       = originInstance.login
-get_QRuuid                  = originInstance.get_QRuuid
-get_QR                      = originInstance.get_QR
-check_login                 = originInstance.check_login
-web_init                    = originInstance.web_init
-show_mobile_login           = originInstance.show_mobile_login
-start_receiving             = originInstance.start_receiving
-get_msg                     = originInstance.get_msg
-logout                      = originInstance.logout
+login                       = instance.login
+get_QRuuid                  = instance.get_QRuuid
+get_QR                      = instance.get_QR
+check_login                 = instance.check_login
+web_init                    = instance.web_init
+show_mobile_login           = instance.show_mobile_login
+start_receiving             = instance.start_receiving
+get_msg                     = instance.get_msg
+logout                      = instance.logout
 # components.contact
-update_chatroom             = originInstance.update_chatroom
-update_friend               = originInstance.update_friend
-get_contact                 = originInstance.get_contact
-get_friends                 = originInstance.get_friends
-get_chatrooms               = originInstance.get_chatrooms
-get_mps                     = originInstance.get_mps
-set_alias                   = originInstance.set_alias
-set_pinned                  = originInstance.set_pinned
-add_friend                  = originInstance.add_friend
-get_head_img                = originInstance.get_head_img
-create_chatroom             = originInstance.create_chatroom
-set_chatroom_name           = originInstance.set_chatroom_name
-delete_member_from_chatroom = originInstance.delete_member_from_chatroom
-add_member_into_chatroom    = originInstance.add_member_into_chatroom
+update_chatroom             = instance.update_chatroom
+update_friend               = instance.update_friend
+get_contact                 = instance.get_contact
+get_friends                 = instance.get_friends
+get_chatrooms               = instance.get_chatrooms
+get_mps                     = instance.get_mps
+set_alias                   = instance.set_alias
+set_pinned                  = instance.set_pinned
+accept_friend               = instance.accept_friend
+get_head_img                = instance.get_head_img
+create_chatroom             = instance.create_chatroom
+set_chatroom_name           = instance.set_chatroom_name
+delete_member_from_chatroom = instance.delete_member_from_chatroom
+add_member_into_chatroom    = instance.add_member_into_chatroom
 # components.messages
-send_raw_msg                = originInstance.send_raw_msg
-send_msg                    = originInstance.send_msg
-upload_file                 = originInstance.upload_file
-send_file                   = originInstance.send_file
-send_image                  = originInstance.send_image
-send_video                  = originInstance.send_video
-send                        = originInstance.send
-revoke                      = originInstance.revoke
+send_raw_msg                = instance.send_raw_msg
+send_msg                    = instance.send_msg
+upload_file                 = instance.upload_file
+send_file                   = instance.send_file
+send_image                  = instance.send_image
+send_video                  = instance.send_video
+send                        = instance.send
+revoke                      = instance.revoke
 # components.hotreload
-dump_login_status           = originInstance.dump_login_status
-load_login_status           = originInstance.load_login_status
+dump_login_status           = instance.dump_login_status
+load_login_status           = instance.load_login_status
 # components.register
-auto_login                  = originInstance.auto_login
-configured_reply            = originInstance.configured_reply
-msg_register                = originInstance.msg_register
-run                         = originInstance.run
+auto_login                  = instance.auto_login
+configured_reply            = instance.configured_reply
+msg_register                = instance.msg_register
+run                         = instance.run
 # other functions
-search_friends              = originInstance.search_friends
-search_chatrooms            = originInstance.search_chatrooms
-search_mps                  = originInstance.search_mps
+search_friends              = instance.search_friends
+search_chatrooms            = instance.search_chatrooms
+search_mps                  = instance.search_mps
 set_logging                 = set_logging

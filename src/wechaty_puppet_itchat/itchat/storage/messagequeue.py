@@ -2,7 +2,7 @@ import logging
 try:
     import Queue as queue
 except ImportError:
-    import queue  # type: ignore
+    import queue
 
 from .templates import AttributeDict
 

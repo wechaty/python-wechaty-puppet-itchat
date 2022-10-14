@@ -21,6 +21,8 @@ limitations under the License.
 from __future__ import annotations
 
 import asyncio
+from distutils import core
+from email import message
 import types
 from typing import Optional, List, Dict
 
@@ -33,7 +35,7 @@ from wechaty_puppet.schemas.types import PayloadType  # type: ignore
 from wechaty_puppet import (  # type: ignore
     EventScanPayload,
     ScanStatus,
-
+    
     # EventReadyPayload,
     #
     # EventDongPayload,
@@ -59,7 +61,7 @@ from wechaty_puppet import (  # type: ignore
     PuppetOptions,
     MiniProgramPayload,
     UrlLinkPayload,
-
+    watch_dog,
     get_logger
 )
 
@@ -71,8 +73,8 @@ from wechaty_puppet.exceptions import (  # type: ignore
     # WechatyPuppetPayloadError
 )
 
-from wechaty_puppet_itchat import itchat
-from wechaty_puppet_itchat.itchat.content import (  # type: ignore
+from itchat import load_async_itchat
+from itchat.content import (
     TEXT,
     MAP,
     CARD,
@@ -85,11 +87,10 @@ from wechaty_puppet_itchat.itchat.content import (  # type: ignore
     VIDEO,
     FRIENDS
 )
-
 # pylint: disable=E0401
 
 log = get_logger('ItChatPuppet')
-
+log.disabled=True
 
 def _map_message_type(message_payload: MessagePayload) -> MessagePayload:
     """
@@ -159,6 +160,7 @@ def _map_message_type(message_payload: MessagePayload) -> MessagePayload:
     return message_payload
 
 
+
 # pylint: disable=R0904
 class PuppetItChat(Puppet):
     """
@@ -182,7 +184,8 @@ class PuppetItChat(Puppet):
         self.login_user_id: Optional[str] = None
         self.puppet_options = None
         self.puppet = self
-        self.itchat = itchat
+        self.itchat = load_async_itchat()
+        
 
         self.message_container: Dict[str, dict] = {}
 
@@ -323,8 +326,19 @@ class PuppetItChat(Puppet):
         # response = await self.puppet_stub.message_send_text(
         #     conversation_id=conversation_id,
         #     text=message, mentonal_ids=mention_ids)
-        response = await self.itchat.send_msg(message, toUserName=conversation_id)
-        return response['MsgID']
+        print(conversation_id)
+        response = await self.itchat.send_msg(msg = message, toUserName=conversation_id)
+        msg=dict()
+        print(response[1])
+        msg['MsgId'] = response[1]['Msg']['ClientMsgId']
+        msg['FromUserName'] = response[1]['Msg']['FromUserName']
+        msg['ToUserName'] = response[1]['Msg']['ToUserName']
+        msg['Type'] = 'Text'
+        msg['Text'] = response[1]['Msg']['Content']
+        msg['FileName'] = ''
+        msg['CreateTime']= response[1]['Msg'].get('ClientMsgId')
+        self.message_container[response[0]['MsgID']] = msg
+        return response[0]['MsgID']
 
     async def message_send_contact(self, contact_id: str,
                                    conversation_id: str) -> str:
@@ -425,7 +439,6 @@ class PuppetItChat(Puppet):
             raise ValueError('message not found')
         msg = self.message_container[message_id]
         msg_type = msg['Type']
-
         if msg_type == 'Text':
             type_ = MessageType.MESSAGE_TYPE_TEXT
         elif msg_type == 'Map':
@@ -535,7 +548,8 @@ class PuppetItChat(Puppet):
         :param message_id:
         :return:
         """
-        # response = await self.puppet_stub.message_contact(id=message_id)
+        
+        # response = await self.puppet.message_contact(id=message_id)
         # return response.id
         if message_id not in self.message_container:
             raise ValueError('contact message not found')
@@ -845,8 +859,8 @@ class PuppetItChat(Puppet):
                     id=r['UserName'],
                     topic=r['NickName'],
                     avatar=r['HeadImgUrl'],
-                    owner_id=r['ChatRoomOwner'],
-                    admin_ids=[r['ChatRoomOwner']],
+                    owner_id=r.get('ChatRoomOwner'),
+                    admin_ids= [r.get('ChatRoomOwner')],
                     member_ids=member_ids)
 
     async def room_members(self, room_id: str) -> List[str]:
@@ -991,6 +1005,7 @@ class PuppetItChat(Puppet):
         """
         log.info('stop()')
         self._event_stream.remove_all_listeners()
+        return None
 
     async def logout(self):
         """
@@ -1026,8 +1041,10 @@ class PuppetItChat(Puppet):
         :return:
         """
         # log.debug('send ding info to itchat server ...')
-        #
-        # await self.puppet_stub.ding(data=data)
+        #await self.puppet.ding(data='dong')
+        food =watch_dog.WatchdogFood(timeout=3)
+        if data:
+            data.feed(food)
 
     # pylint: disable=R0912,R0915
     async def _listen_for_event(self):
@@ -1079,7 +1096,6 @@ class PuppetItChat(Puppet):
                 timestamp=msg['CreateTime'],
                 to_id=msg['ToUserName']
             )
-
             self._event_stream.emit('message', event_message_payload)
             await asyncio.sleep(0.1)
 
@@ -1134,7 +1150,7 @@ class PuppetItChat(Puppet):
             self._event_stream.emit('message', event_message_payload)
             await asyncio.sleep(0.1)
 
-        @itchat.msg_register(FRIENDS)
+        @self.itchat.msg_register(FRIENDS)
         def add_friend(msg):
             self.message_container[msg['MsgId']] = msg
             log.info(f'receive file message info <{msg.user}>')
@@ -1145,21 +1161,50 @@ class PuppetItChat(Puppet):
         #     log.info(f'receive system message info <{msg["Text"]}>')
 
         message_container = self.message_container.copy()
-
         async def run(self, event_stream, payload):
             async def reply_fn():
                 try:
-                    while self.alive:
+                    while self.alive :
                         await self.configured_reply(event_stream=event_stream, payload=payload,
-                                                    message_container=message_container)
+                                                        message_container=message_container)
+                        
                 except KeyboardInterrupt:
+                    print('有报错')
                     if self.useHotReload:
                         await self.dump_login_status()
                     self.alive = False
-
-            while True:
-                await asyncio.sleep(0.5)
-                await reply_fn()
-
-        self.itchat.run = types.MethodType(run, self.itchat.originInstance)
+            # await reply_fn()
+            def new_thread():
+                async def main():           
+                    await reply_fn()
+                asyncio.run(reply_fn())
+            import threading
+            replyThread = threading.Thread(target=new_thread)
+            replyThread.setDaemon(True)
+            replyThread.start() 
+            # while True:
+            #     await asyncio.sleep(1)
+            #     await reply_fn()
+            
+            # 使用装饰器实现多线程的异步非阻塞
+            # import time
+            # from threading import Thread
+            # def start_async(*args):
+            #     fun = args[0]
+        
+            #     def start_thread(*args, **kwargs):
+            #         t = Thread(target=fun, args=args, kwargs=kwargs)
+            #         t.start()
+        
+            #     return start_thread
+            # @start_async
+            # def new_thread(*args):
+            #     async def main():
+            #         await asyncio.sleep(0.1)                 
+            #         await reply_fn()
+            #     while True:  
+            #         asyncio.run(main())
+                    
+            # new_thread()
+        self.itchat.run = types.MethodType(run, self.itchat)#self.itchat.originInstance)
         await self.itchat.run(event_stream=self._event_stream, payload=EventMessagePayload)

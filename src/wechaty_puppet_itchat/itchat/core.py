@@ -1,8 +1,6 @@
-import requests  # type: ignore
-import os
-from . import storage
-from .components import load_components
+import requests
 
+from . import storage
 
 class Core(object):
     def __init__(self):
@@ -27,15 +25,7 @@ class Core(object):
         self.uuid = None
         self.functionDict = {'FriendChat': {}, 'GroupChat': {}, 'MpChat': {}}
         self.useHotReload, self.hotReloadDir = False, 'itchat.pkl'
-        self.receivingRetryCount = 3
-
-
-    @staticmethod
-    def from_cache():
-        cache_dir = '.wechaty'
-        os.makedirs(cache_dir, exist_ok=True)
-        cache_file = os.path.join(cache_dir, 'session.pkl')
-
+        self.receivingRetryCount = 5
     def login(self, enableCmdQR=False, picDir=None, qrCallback=None,
             loginCallback=None, exitCallback=None):
         ''' log in like web wechat does
@@ -228,8 +218,8 @@ class Core(object):
             it is defined in components/contact.py
         '''
         raise NotImplementedError()
-    def add_friend(self, userName, status=2, verifyContent='', autoUpdate=True):
-        ''' add a friend or accept a friend
+    def accept_friend(self, userName, v4,autoUpdate=True):
+        ''' accept a friend or accept a friend
             for options
                 - userName: 'UserName' for friend's info dict
                 - status:
@@ -336,7 +326,7 @@ class Core(object):
         ''' send attachment
             for options
                 - fileDir: dir for file ready for upload
-                - mediaId: mediaId for file.
+                - mediaId: mediaId for file. 
                     - if set, file will not be uploaded twice
                 - toUserName: 'UserName' key of friend dict
             it is defined in components/messages.py
@@ -347,7 +337,7 @@ class Core(object):
             for options
                 - fileDir: dir for file ready for upload
                     - if it's a gif, name it like 'xx.gif'
-                - mediaId: mediaId for file.
+                - mediaId: mediaId for file. 
                     - if set, file will not be uploaded twice
                 - toUserName: 'UserName' key of friend dict
             it is defined in components/messages.py
@@ -358,7 +348,7 @@ class Core(object):
             for options
                 - fileDir: dir for file ready for upload
                     - if mediaId is set, it's unnecessary to set fileDir
-                - mediaId: mediaId for file.
+                - mediaId: mediaId for file. 
                     - if set, file will not be uploaded twice
                 - toUserName: 'UserName' key of friend dict
             it is defined in components/messages.py
@@ -406,7 +396,7 @@ class Core(object):
         raise NotImplementedError()
     def auto_login(self, hotReload=False, statusStorageDir='itchat.pkl',
             enableCmdQR=False, picDir=None, qrCallback=None,
-            loginCallback=None, exitCallback=None, EventScanPayload=None, ScanStatus=None, event_stream=None):
+            loginCallback=None, exitCallback=None):
         ''' log in like web wechat does
             for log in
                 - a QR code will be downloaded and opened
@@ -464,5 +454,3 @@ class Core(object):
         return self.storageClass.search_chatrooms(name, userName)
     def search_mps(self, name=None, userName=None):
         return self.storageClass.search_mps(name, userName)
-
-load_components(Core)

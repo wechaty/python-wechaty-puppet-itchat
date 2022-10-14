@@ -1,7 +1,7 @@
 import logging
 
 class LogSystem(object):
-    handlerList = []  # type: ignore
+    handlerList = []
     showOnCmd = True
     loggingLevel = logging.INFO
     loggingFile = None

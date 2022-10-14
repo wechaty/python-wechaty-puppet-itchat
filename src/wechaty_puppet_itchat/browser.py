@@ -153,10 +153,14 @@ class Browser:
         self.login_info['logintime'] = int(time.time() * 1e3)
         self.login_info['BaseRequest'] = {}
         cookies = self.session.cookies.get_dict()
-        self.login_info['skey'] = self.login_info['BaseRequest']['Skey'] = ""
+        # self.login_info['skey'] = self.login_info['BaseRequest']['Skey'] = ""
+        skey = re.findall('<skey>(.*?)</skey>', response.text, re.S)[0]
+        pass_ticket = re.findall('<pass_ticket>(.*?)</pass_ticket>', response.text, re.S)[0]
+        self.login_info['skey'] = self.login_info['BaseRequest']['Skey'] = skey
         self.login_info['wxsid'] = self.login_info['BaseRequest']['Sid'] = cookies["wxsid"]
         self.login_info['wxuin'] = self.login_info['BaseRequest']['Uin'] = cookies["wxuin"]
-        self.login_info['pass_ticket'] = self.login_info['BaseRequest']['DeviceID'] = self.login_info['deviceid']
+        # self.login_info['pass_ticket'] = self.login_info['BaseRequest']['DeviceID'] = self.login_info['deviceid']
+        self.login_info['pass_ticket'] = pass_ticket
         if not all([key in self.login_info for key in ('skey', 'wxsid', 'wxuin', 'pass_ticket')]):
             logger.error('Your wechat account may be LIMITED to log in WEB wechat, error info:\n%s' % response.text)
             self.is_alive = False
