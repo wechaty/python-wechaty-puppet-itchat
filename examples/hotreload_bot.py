@@ -92,7 +92,10 @@ async def send_report(bot, msg_type, name, msg):
     log.info('Bot_' + 'send_report()')
     try:
         if msg_type == 'group_msg':
-            pass
+            room = bot.puppet.itchat.search_chatrooms(name = name )
+            room = room[0]['UserName']
+            room = bot.Room.load(room)
+            await room.say(msg)
         elif msg_type == 'private_msg':
             contact = bot.puppet.itchat.search_friends(name=name)
             print(contact)
