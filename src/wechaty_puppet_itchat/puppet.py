@@ -257,7 +257,7 @@ class PuppetItChat(Puppet):
         get contact list
         :return:
         """
-        return [i['UserName'] for i in self.itchat.get_friends()]
+        return [i['UserName'] for i in self.itchat.get_friends(update=True)]
 
     async def tag_contact_delete(self, tag_id: str) -> None:
         """
@@ -765,13 +765,16 @@ class PuppetItChat(Puppet):
         ret_room_list = []
         if query:
             for r in room_list:
+                print(r['NickName'])
                 if query.id:
                     if r['UserName'] == query.id:
                         ret_room_list.append(r['UserName'])
                         continue
                 elif query.topic:
-                    if r['RemarkName'] == query.topic:
+                    # if r['RemarkName'] == query.topic:
+                    if r['NickName'] == query.topic:
                         ret_room_list.append(r['UserName'])
+                
         return ret_room_list
 
     async def room_invitation_payload(self,
@@ -1171,46 +1174,38 @@ class PuppetItChat(Puppet):
             async def reply_fn():
                 try:
                     while self.alive :
+                        await asyncio.sleep(3)
                         await self.configured_reply(event_stream=event_stream, payload=payload,
                                                         message_container=message_container)
                         
                 except KeyboardInterrupt:
-                    print('有报错')
                     if self.useHotReload:
                         await self.dump_login_status()
                     self.alive = False
-            # await reply_fn()
-            def new_thread():
-                async def main():           
-                    await reply_fn()
-                asyncio.run(reply_fn())
-            import threading
-            replyThread = threading.Thread(target=new_thread)
-            replyThread.setDaemon(True)
-            replyThread.start() 
+            await reply_fn()
+
+            #v3
+            # 定义一个专门创建事件循环loop的函数，在另一个线程中启动它
+            # def start_loop(loop):
+            #     asyncio.set_event_loop(loop)
+            #     loop.run_forever()
+            # new_loop = asyncio.new_event_loop()  # 在当前线程下创建时间循环，（未启用），在start_loop里面启动它
+            # import threading
+            # t = threading.Thread(target=start_loop, args=(new_loop,))  # 通过当前线程开启新的线程去启动事件循环
+            # t.start()
+
+            # asyncio.run_coroutine_threadsafe(reply_fn(), new_loop) 
+            # def new_thread():
+            #     async def main():           
+            #         await reply_fn()
+            #     asyncio.run(reply_fn())
+            # import threading
+            # replyThread = threading.Thread(target=new_thread)
+            # replyThread.setDaemon(True)
+            # replyThread.start() 
             # while True:
             #     await asyncio.sleep(1)
             #     await reply_fn()
             
-            # 使用装饰器实现多线程的异步非阻塞
-            # import time
-            # from threading import Thread
-            # def start_async(*args):
-            #     fun = args[0]
-        
-            #     def start_thread(*args, **kwargs):
-            #         t = Thread(target=fun, args=args, kwargs=kwargs)
-            #         t.start()
-        
-            #     return start_thread
-            # @start_async
-            # def new_thread(*args):
-            #     async def main():
-            #         await asyncio.sleep(0.1)                 
-            #         await reply_fn()
-            #     while True:  
-            #         asyncio.run(main())
-                    
-            # new_thread()
         self.itchat.run = types.MethodType(run, self.itchat)#self.itchat.originInstance)
         await self.itchat.run(event_stream=self._event_stream, payload=EventMessagePayload)
