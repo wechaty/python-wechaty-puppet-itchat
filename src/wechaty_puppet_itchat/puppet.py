@@ -204,7 +204,7 @@ class PuppetItChat(Puppet):
         # if response is None:
         #     raise WechatyPuppetGrpcError('can"t get room_list response')
         # return response.ids
-        return [i['UserName'] for i in self.itchat.get_chatrooms()]
+        return [i['UserName'] for i in  self.itchat.get_chatrooms()]
 
     async def message_image(self, message_id: str, image_type: ImageType = 3
                             ) -> FileBox:
@@ -332,19 +332,17 @@ class PuppetItChat(Puppet):
         # response = await self.puppet_stub.message_send_text(
         #     conversation_id=conversation_id,
         #     text=message, mentonal_ids=mention_ids)
-        print(conversation_id)
         response = await self.itchat.send_msg(msg = message, toUserName=conversation_id)
         msg=dict()
-        print(response[1])
-        msg['MsgId'] = response[1]['Msg']['ClientMsgId']
-        msg['FromUserName'] = response[1]['Msg']['FromUserName']
-        msg['ToUserName'] = response[1]['Msg']['ToUserName']
+        msg['MsgId'] = response['MsgID']
+        msg['FromUserName'] = ''
+        msg['ToUserName'] = ''
         msg['Type'] = 'Text'
-        msg['Text'] = response[1]['Msg']['Content']
+        msg['Text'] = message
         msg['FileName'] = ''
-        msg['CreateTime']= response[1]['Msg'].get('ClientMsgId')
-        self.message_container[response[0]['MsgID']] = msg
-        return response[0]['MsgID']
+        msg['CreateTime']= ''
+        self.message_container[response['MsgID']] = msg
+        return response['MsgID']
 
     async def message_send_contact(self, contact_id: str,
                                    conversation_id: str) -> str:
@@ -370,18 +368,41 @@ class PuppetItChat(Puppet):
         :param file:
         :return:
         """
+        file_path = file.name
         if file.name.endswith('.jpg') or \
                 file.name.endswith('.jpeg') or \
                 file.name.endswith('.png') or \
                 file.name.endswith('.gif') or \
                 file.name.endswith('.bmp'):
-            file_path = file.name
             await file.to_file(file_path=file_path, overwrite=True)
             response = await self.itchat.send_image(fileDir=file_path, toUserName=conversation_id)
+        elif file.name.endswith(('.mp4','.MP4'))  :
+            await file.to_file(file_path=file_path, overwrite=True)
+            response = await self.itchat.send_video(fileDir=file_path, toUserName=conversation_id)
+            msg=dict()
+            msg['MsgId'] = response['MsgID']
+            msg['FromUserName'] = ''
+            msg['ToUserName'] = ''
+            msg['Type'] = 'Video'
+            msg['Text'] = ''
+            msg['FileName'] = file_path
+            msg['CreateTime']= ''
+            self.message_container[response['MsgID']] = msg
             return response['MsgID']
-        file_path = file.name
-        await file.to_file(overwrite=True)
-        response = await self.itchat.send_file(fileDir=file_path, toUserName=conversation_id)
+        else:
+            file_path = file.name
+            await file.to_file(overwrite=True)
+            response = await self.itchat.send_file(fileDir=file_path, toUserName=conversation_id)
+        msg=dict()
+        print(response)
+        msg['MsgId'] = response['MsgID']
+        msg['FromUserName'] = ''
+        msg['ToUserName'] = ''
+        msg['Type'] = 'Attachment'
+        msg['Text'] = ''
+        msg['FileName'] = file_path
+        msg['CreateTime']= ''
+        self.message_container[response['MsgID']] = msg
         return response['MsgID']
 
     async def message_send_url(self, conversation_id: str, url: str) -> str:
@@ -633,9 +654,9 @@ class PuppetItChat(Puppet):
         """
         # response = await self.puppet_stub.contact_payload(id=contact_id)
         # return response
-        contact_list = self.itchat.get_contact(update=True)
+        contact_list = self.itchat.get_friends(update=True)
         for c in contact_list:
-            if c['UserName'] == contact_id:
+            if c.get('UserName') == contact_id:
                 return ContactPayload(
                     id=c['UserName'],
                     gender=c['Sex'],
@@ -752,7 +773,8 @@ class PuppetItChat(Puppet):
         # return response.id
         return self.itchat.create_chatroom(memberList=contact_ids, topic=topic)['ChatRoomName']
 
-    async def room_search(self, query: RoomQueryFilter = None) -> List[str]:
+    # async def room_search(self, query: RoomQueryFilter = None) -> List[str]:
+    async def room_search(self) -> List[str]:
         """
         find the room_ids
         search room
@@ -761,21 +783,8 @@ class PuppetItChat(Puppet):
         """
         # room_list_response = await self.puppet_stub.room_list()
         # return room_list_response.ids
-        room_list = self.itchat.get_chatrooms()
-        ret_room_list = []
-        if query:
-            for r in room_list:
-                print(r['NickName'])
-                if query.id:
-                    if r['UserName'] == query.id:
-                        ret_room_list.append(r['UserName'])
-                        continue
-                elif query.topic:
-                    # if r['RemarkName'] == query.topic:
-                    if r['NickName'] == query.topic:
-                        ret_room_list.append(r['UserName'])
-                
-        return ret_room_list
+        return [i['UserName'] for i in self.itchat.get_chatrooms(update=True)]
+
 
     async def room_invitation_payload(self,
                                       room_invitation_id: str,
@@ -862,6 +871,7 @@ class PuppetItChat(Puppet):
         # return response
         room_list = self.itchat.get_chatrooms(update=True)
         for r in room_list:
+            print(r)
             if r['UserName'] == room_id:
                 member_ids = [c['UserName'] for c in r['MemberList']]
                 return RoomPayload(
@@ -1174,7 +1184,7 @@ class PuppetItChat(Puppet):
             async def reply_fn():
                 try:
                     while self.alive :
-                        await asyncio.sleep(3)
+                        await asyncio.sleep(2)
                         await self.configured_reply(event_stream=event_stream, payload=payload,
                                                         message_container=message_container)
                         
