@@ -80,7 +80,7 @@ if os.name == 'nt':
 sys.path.insert(0,f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}/wechaty_puppet_itchat')
     
 from itchat  import load_async_itchat
-from itchat.async_components import (
+from itchat.content import (
     TEXT,
     MAP,
     CARD,
