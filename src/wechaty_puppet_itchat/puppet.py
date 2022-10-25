@@ -179,8 +179,6 @@ class PuppetItChat(Puppet):
             WechatyPuppetConfigurationError: raise Error when configuraiton occur error
         """
         super().__init__(options, name)
-
-        self.channel: Optional[Channel] = None
         self._event_stream: AsyncIOEventEmitter = AsyncIOEventEmitter()
         self.login_user_id: Optional[str] = None
         self.puppet_options = None
