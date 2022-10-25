@@ -731,7 +731,7 @@ class PuppetItChat(Puppet):
         #     contact_id=contact_id,
         #     hello=hello
         # )
-        await self.itchatadd_friend(self.itchat, userName=contact_id,
+        await self.itchat.accept_friend(self.itchat, userName=contact_id,
                                           status=2, verifyContent=hello)
 
     async def friendship_payload(self, friendship_id: str,
@@ -756,7 +756,7 @@ class PuppetItChat(Puppet):
         :param friendship_id:
         :return:
         """
-        await self.itchat.add_friend(self.itchat, userName=friendship_id, status=3)
+        await self.itchat.accept_friend(self.itchat, userName=friendship_id, status=3)
 
     async def room_create(self, contact_ids: Optional[List[str]], topic: Optional[str] = None
                           ) -> str:
