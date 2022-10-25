@@ -333,7 +333,7 @@ class PuppetItChat(Puppet):
         #     conversation_id=conversation_id,
         #     text=message, mentonal_ids=mention_ids)
         response = await self.itchat.send_msg(msg = message, toUserName=conversation_id)
-        msg=dict()
+        msg={}
         msg['MsgId'] = response['MsgID']
         msg['FromUserName'] = ''
         msg['ToUserName'] = ''
@@ -379,7 +379,7 @@ class PuppetItChat(Puppet):
         elif file.name.endswith(('.mp4','.MP4'))  :
             await file.to_file(file_path=file_path, overwrite=True)
             response = await self.itchat.send_video(fileDir=file_path, toUserName=conversation_id)
-            msg=dict()
+            msg={}
             msg['MsgId'] = response['MsgID']
             msg['FromUserName'] = ''
             msg['ToUserName'] = ''
@@ -393,7 +393,7 @@ class PuppetItChat(Puppet):
             file_path = file.name
             await file.to_file(overwrite=True)
             response = await self.itchat.send_file(fileDir=file_path, toUserName=conversation_id)
-        msg=dict()
+        msg={}
         print(response)
         msg['MsgId'] = response['MsgID']
         msg['FromUserName'] = ''
@@ -731,8 +731,7 @@ class PuppetItChat(Puppet):
         #     contact_id=contact_id,
         #     hello=hello
         # )
-        await self.itchat.accept_friend(self.itchat, userName=contact_id,
-                                          status=2, verifyContent=hello)
+        await self.itchat.accept_friend( userName=contact_id)
 
     async def friendship_payload(self, friendship_id: str,
                                  payload: Optional[FriendshipPayload] = None
@@ -756,7 +755,7 @@ class PuppetItChat(Puppet):
         :param friendship_id:
         :return:
         """
-        await self.itchat.accept_friend(self.itchat, userName=friendship_id, status=3)
+        await self.itchat.accept_friend(self.itchat, userName=friendship_id)
 
     async def room_create(self, contact_ids: Optional[List[str]], topic: Optional[str] = None
                           ) -> str:
