@@ -748,7 +748,7 @@ class PuppetItChat(Puppet):
         :param friendship_id:
         :return:
         """
-        await self.itchat.accept_friend(self.itchat, userName=friendship_id,v4='')
+        await self.itchat.accept_friend( userName=friendship_id,v4='')
 
     async def room_create(self, contact_ids: Optional[List[str]], topic: Optional[str] = None
                           ) -> str:
@@ -1084,7 +1084,7 @@ class PuppetItChat(Puppet):
             self._event_stream.emit('logout', payload)
             await asyncio.sleep(0.1)
 
-        await self.itchat.auto_login(
+        await self.itchat.login(
             enableCmdQR=True,
             qrCallback=on_scan,
             EventScanPayload=EventScanPayload,
