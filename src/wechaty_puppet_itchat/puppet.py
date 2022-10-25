@@ -19,17 +19,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from __future__ import annotations
-
+import sys
+import os
+if os.name == 'nt':
+    sys.path.insert(0,f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}/wechaty_puppet_itchat')
+    
+sys.path.insert(0,f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}/wechaty_puppet_itchat')
+    
+from itchat  import load_async_itchat
+from itchat.content import (
+    TEXT,
+    MAP,
+    CARD,
+    NOTE,
+    SHARING,
+    PICTURE,
+    RECORDING,
+    VOICE,
+    ATTACHMENT,
+    VIDEO,
+    FRIENDS
+)
 import asyncio
 from distutils import core
-from email import message
 import types
 from typing import Optional, List, Dict
-
-from grpclib.client import Channel
-
 from pyee import AsyncIOEventEmitter  # type: ignore
-
 from wechaty_puppet.schemas.types import PayloadType  # type: ignore
 
 from wechaty_puppet import (  # type: ignore
@@ -72,27 +87,7 @@ from wechaty_puppet.exceptions import (  # type: ignore
     WechatyPuppetOperationError,
     # WechatyPuppetPayloadError
 )
-import sys
-import os
-if os.name == 'nt':
-    sys.path.insert(0,f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}/wechaty_puppet_itchat')
-    
-sys.path.insert(0,f'{os.path.abspath(os.path.dirname(os.path.dirname(__file__)))}/wechaty_puppet_itchat')
-    
-from itchat  import load_async_itchat
-from itchat.content import (
-    TEXT,
-    MAP,
-    CARD,
-    NOTE,
-    SHARING,
-    PICTURE,
-    RECORDING,
-    VOICE,
-    ATTACHMENT,
-    VIDEO,
-    FRIENDS
-)
+
 # pylint: disable=E0401
 
 log = get_logger('ItChatPuppet')
@@ -731,7 +726,7 @@ class PuppetItChat(Puppet):
         #     contact_id=contact_id,
         #     hello=hello
         # )
-        await self.itchat.accept_friend( userName=contact_id)
+        await self.itchat.accept_friend( userName=contact_id,v4='')
 
     async def friendship_payload(self, friendship_id: str,
                                  payload: Optional[FriendshipPayload] = None
@@ -755,7 +750,7 @@ class PuppetItChat(Puppet):
         :param friendship_id:
         :return:
         """
-        await self.itchat.accept_friend(self.itchat, userName=friendship_id)
+        await self.itchat.accept_friend(self.itchat, userName=friendship_id,v4='')
 
     async def room_create(self, contact_ids: Optional[List[str]], topic: Optional[str] = None
                           ) -> str:
