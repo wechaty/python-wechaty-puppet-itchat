@@ -16,8 +16,8 @@ def load_register(core):
     core.msg_register     = msg_register
     core.run              = run
 
-async def auto_login(self, EventScanPayload=None,ScanStatus=None,event_stream=None,
-        hotReload=True, statusStorageDir='itchat.pkl',
+async def auto_login(self, hotReload=True, statusStorageDir='itchat.pkl',
+        EventScanPayload=None,ScanStatus=None,event_stream=None,
         enableCmdQR=False, picDir=None, qrCallback=None,
         loginCallback=None, exitCallback=None):
     if not test_connect():
