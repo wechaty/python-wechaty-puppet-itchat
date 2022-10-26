@@ -46,7 +46,7 @@ import types
 from typing import Optional, List, Dict
 from pyee import AsyncIOEventEmitter  # type: ignore
 from wechaty_puppet.schemas.types import PayloadType  # type: ignore
-
+from wechaty_puppet.schemas.event import EventScanPayload,ScanStatus
 from wechaty_puppet import (  # type: ignore
     EventScanPayload,
     ScanStatus,
