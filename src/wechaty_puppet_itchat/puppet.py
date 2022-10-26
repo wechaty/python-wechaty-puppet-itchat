@@ -1082,7 +1082,7 @@ class PuppetItChat(Puppet):
             await asyncio.sleep(0.1)
 
         await self.itchat.auto_login(
-            hotReload=False,
+            hotReload=True,
             statusStorageDir='itchat.pkl',
             EventScanPayload=EventScanPayload,
             ScanStatus=ScanStatus,
