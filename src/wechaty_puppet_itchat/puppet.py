@@ -1082,11 +1082,14 @@ class PuppetItChat(Puppet):
             await asyncio.sleep(0.1)
 
         await self.itchat.auto_login(
-            enableCmdQR=True,
-            qrCallback=on_scan,
+            hotReload=False,
+            statusStorageDir='itchat.pkl',
             EventScanPayload=EventScanPayload,
             ScanStatus=ScanStatus,
             event_stream=self._event_stream,
+            enableCmdQR=True,
+            picDir=None,
+            qrCallback=on_scan,
             loginCallback=on_logined,
             exitCallback=on_logout
         )
