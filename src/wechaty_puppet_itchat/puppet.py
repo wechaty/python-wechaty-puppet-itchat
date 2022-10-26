@@ -61,7 +61,7 @@ from wechaty_puppet import (  # type: ignore
 
     EventMessagePayload,
     EventLogoutPayload,
-    EventPayload,
+    EventLoginPayload,
     # EventFriendshipPayload,
     # EventHeartbeatPayload,
     # EventErrorPayload,
