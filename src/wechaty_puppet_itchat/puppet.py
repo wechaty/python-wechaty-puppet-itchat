@@ -1087,8 +1087,8 @@ class PuppetItChat(Puppet):
         await self.itchat.auto_login(
             enableCmdQR=True,
             qrCallback=on_scan,
-            EventScanPayload=EventScanPayload,
-            ScanStatus=ScanStatus,
+            #EventScanPayload=EventScanPayload,
+            #ScanStatus=ScanStatus,
             event_stream=self._event_stream,
             loginCallback=on_logined,
             exitCallback=on_logout
