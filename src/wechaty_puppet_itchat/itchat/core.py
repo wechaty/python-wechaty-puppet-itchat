@@ -396,6 +396,7 @@ class Core(object):
         '''
         raise NotImplementedError()
     def auto_login(self, hotReload=False, statusStorageDir='itchat.pkl',
+            EventScanPayload=None,ScanStatus=None,event_stream=None,
             enableCmdQR=False, picDir=None, qrCallback=None,
             loginCallback=None, exitCallback=None):
         ''' log in like web wechat does
