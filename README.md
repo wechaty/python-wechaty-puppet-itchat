@@ -37,6 +37,11 @@ asyncio.run(main())
 
 ## History
 
+### v0.0.5 (Oct 03, 2022)
+
+1. enable itchat great again by @fangjiyuan
+2. itchat example
+
 ### v0.0.4 (October 12, 2021)
 
 1. Fix Bugs
