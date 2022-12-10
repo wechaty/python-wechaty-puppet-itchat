@@ -5,7 +5,6 @@ import json
 import random
 import traceback
 import logging
-from turtle import update
 try:
     from httplib import BadStatusLine
 except ImportError:
